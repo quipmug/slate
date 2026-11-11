@@ -1,0 +1,28 @@
+# built output
+.gradle/
+build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# local config
+local.properties
+local.properties.bak
+
+# ide
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# os
+.DS_Store
+Thumbs.db
+
+# misc
+*.apk
+*.aab
+*.keystore
+!app/build/outputs/**/*.apk
