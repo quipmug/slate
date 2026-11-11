@@ -7,26 +7,30 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
+private val SlateLocale = Locale.ENGLISH
+
 fun LocalDate.startOfWeek(): LocalDate = minusDays((dayOfWeek.value - 1).toLong())
 
 fun weekDays(monday: LocalDate): List<LocalDate> = (0L..6L).map { monday.plusDays(it) }
 
-fun dayLabel(date: LocalDate, locale: Locale = Locale.getDefault()): String =
-    date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale).lowercase(locale).take(2)
+fun dayLabel(date: LocalDate): String =
+    date.dayOfWeek.getDisplayName(TextStyle.SHORT, SlateLocale).lowercase(SlateLocale).take(2)
 
-fun monthName(month: Month, short: Boolean, locale: Locale = Locale.getDefault()): String =
-    month.getDisplayName(if (short) TextStyle.SHORT else TextStyle.FULL, locale).lowercase(locale)
+fun dayDescription(date: LocalDate): String =
+    date.dayOfWeek.getDisplayName(TextStyle.FULL, SlateLocale).lowercase(SlateLocale) +
+        " ${date.dayOfMonth} ${monthName(date.month, false)}"
 
-fun monthShortLabel(month: Month, locale: Locale = Locale.getDefault()): String =
-    month.getDisplayName(TextStyle.SHORT, locale).lowercase(locale).removeSuffix(".")
+fun monthName(month: Month, short: Boolean): String =
+    month.getDisplayName(if (short) TextStyle.SHORT else TextStyle.FULL, SlateLocale)
+        .lowercase(SlateLocale)
 
-fun weekRangeLabel(monday: LocalDate, locale: Locale = Locale.getDefault()): String {
+fun weekRangeLabel(monday: LocalDate): String {
     val sunday = monday.plusDays(6)
     return if (monday.month == sunday.month) {
-        "${monday.dayOfMonth} – ${sunday.dayOfMonth} ${monthName(monday.month, false, locale)}"
+        "${monday.dayOfMonth}–${sunday.dayOfMonth} ${monthName(monday.month, true)}"
     } else {
-        "${monday.dayOfMonth} ${monthName(monday.month, true, locale)} – " +
-            "${sunday.dayOfMonth} ${monthName(sunday.month, true, locale)}"
+        "${monday.dayOfMonth} ${monthName(monday.month, true)}–" +
+            "${sunday.dayOfMonth} ${monthName(sunday.month, true)}"
     }
 }
 
@@ -38,10 +42,11 @@ fun weekChecks(habit: Habit, monday: LocalDate): Int {
 
 fun weeksInARow(habit: Habit, today: LocalDate): Int {
     if (habit.target <= 0) return 0
+    val firstMonday = LocalDate.ofEpochDay(habit.createdDay).startOfWeek()
     var monday = today.startOfWeek()
     if (weekChecks(habit, monday) < habit.target) monday = monday.minusWeeks(1)
     var streak = 0
-    while (weekChecks(habit, monday) >= habit.target && streak < 260) {
+    while (monday >= firstMonday && weekChecks(habit, monday) >= habit.target && streak < 260) {
         streak++
         monday = monday.minusWeeks(1)
     }
@@ -56,4 +61,4 @@ fun daysKeptThisYear(habits: List<Habit>, today: LocalDate): Int {
 }
 
 fun formatTime(hour: Int, minute: Int): String =
-    String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+    String.format(Locale.US, "%02d:%02d", hour, minute)

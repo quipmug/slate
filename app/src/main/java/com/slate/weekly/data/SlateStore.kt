@@ -56,9 +56,10 @@ class SlateStore(private val context: Context) {
     }
 
     suspend fun toggle(habitId: String, day: Long) {
+        val today = LocalDate.now().toEpochDay()
         mutate { list ->
             list.map { habit ->
-                if (habit.id != habitId) {
+                if (habit.id != habitId || day < habit.createdDay || day > today) {
                     habit
                 } else {
                     habit.copy(

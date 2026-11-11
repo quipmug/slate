@@ -20,6 +20,8 @@ nothing else.
 - font: inter, bundled in the app
 - no uppercase labels, no gradients, no shadows
 - lowercase copy in english only
+- quiet motion only: week changes, day fills, theme pills and screen fades
+- tabular numerals, 48dp touch targets, english dates on every phone
 
 ## build
 

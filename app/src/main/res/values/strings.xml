@@ -7,6 +7,10 @@
     <string name="back">back</string>
     <string name="back_to_this_week">back to this week</string>
     <string name="week_progress">%1$d of %2$d done</string>
+    <string name="week_complete">all done.</string>
+    <string name="nothing_this_week">nothing this week.</string>
+    <string name="previous_week">previous week</string>
+    <string name="next_week">next week</string>
 
     <string name="nothing_yet">nothing yet.</string>
     <string name="nothing_yet_sub">one thing, a few times a week.</string>
@@ -16,7 +20,7 @@
     <string name="name_hint">a run, a page, a call</string>
     <string name="times_a_week">times a week</string>
 
-    <string name="target">target</string>
+    <string name="weekly_target">weekly target</string>
     <string name="last_weeks">past weeks</string>
     <string name="rename">rename</string>
     <string name="delete">delete</string>
@@ -35,8 +39,12 @@
 
     <string name="reminder">reminder</string>
     <string name="remind_at">remind at</string>
+    <string name="hour">hour</string>
+    <string name="minute">minute</string>
     <string name="reminder_channel">reminders</string>
     <string name="reminder_channel_desc">a quiet nudge when the day is still open</string>
+    <string name="notifications_off">notifications are off, so reminders cannot show.</string>
+    <string name="open_settings">open settings</string>
 
     <string name="about">about</string>
     <string name="about_text">no account. no cloud. everything stays on this phone.</string>

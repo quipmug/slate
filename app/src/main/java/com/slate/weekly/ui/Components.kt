@@ -1,18 +1,23 @@
 package com.slate.weekly.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -23,39 +28,76 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SmallAction(text: String, onClick: () -> Unit) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
+fun SmallAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+) {
+    Box(
+        modifier = modifier
+            .heightIn(min = 48.dp)
             .clip(CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 9.dp, vertical = 7.dp),
-    )
+            .then(
+                if (description != null) {
+                    Modifier.semantics { contentDescription = description }
+                } else {
+                    Modifier
+                },
+            )
+            .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = if (description != null) {
+                Modifier.clearAndSetSemantics { }
+            } else {
+                Modifier
+            },
+        )
+    }
 }
 
 @Composable
-fun ArrowText(glyph: String, enabled: Boolean, onClick: () -> Unit) {
-    Text(
-        text = glyph,
-        fontSize = 26.sp,
-        color = if (enabled) {
-            MaterialTheme.colorScheme.onSurface
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-        },
+fun ArrowText(
+    glyph: String,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
         modifier = Modifier
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-    )
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = glyph,
+            fontSize = 26.sp,
+            color = if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+            },
+            modifier = Modifier.clearAndSetSemantics { },
+        )
+    }
 }
 
 @Composable
@@ -64,20 +106,48 @@ fun AddPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    plus: Boolean = false,
 ) {
+    val background by animateColorAsState(
+        targetValue = if (enabled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        },
+        animationSpec = tween(180),
+        label = "pillBackground",
+    )
+    val foreground = if (enabled) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Box(
         modifier = modifier
-            .height(54.dp)
+            .heightIn(min = 54.dp)
             .clip(CircleShape)
-            .background(if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
-            .clickable(enabled = enabled, onClick = onClick),
+            .background(background)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (plus) {
+                Text(
+                    text = "+",
+                    fontSize = 18.sp,
+                    color = foreground,
+                    modifier = Modifier.clearAndSetSemantics { },
+                )
+                Spacer(Modifier.width(7.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                color = foreground,
+            )
+        }
     }
 }
 
@@ -85,17 +155,22 @@ fun AddPill(
 fun TextAction(
     text: String,
     onClick: () -> Unit,
-    color: Color = MaterialTheme.colorScheme.onSurface,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = color,
+    Box(
         modifier = Modifier
+            .heightIn(min = 48.dp)
             .clip(CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 9.dp),
-    )
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+        )
+    }
 }
 
 @Composable
@@ -116,6 +191,8 @@ fun slateFieldColors() = OutlinedTextFieldDefaults.colors(
     cursorColor = MaterialTheme.colorScheme.onSurface,
     focusedTextColor = MaterialTheme.colorScheme.onSurface,
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
 )
 
 @Composable
@@ -133,7 +210,7 @@ fun Stepper(
             text = if (pad) value.toString().padStart(2, '0') else value.toString(),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(30.dp),
+            modifier = Modifier.width(34.dp),
         )
         StepButton("+", enabled = value < max) { onChange((value + step).coerceAtMost(max)) }
     }
@@ -143,7 +220,7 @@ fun Stepper(
 private fun StepButton(glyph: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -154,7 +231,7 @@ private fun StepButton(glyph: String, enabled: Boolean, onClick: () -> Unit) {
             color = if (enabled) {
                 MaterialTheme.colorScheme.onSurface
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
             },
         )
     }
@@ -162,42 +239,57 @@ private fun StepButton(glyph: String, enabled: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun Toggle(checked: Boolean, onChange: (Boolean) -> Unit) {
-    val knob by animateDpAsState(if (checked) 22.dp else 3.dp, label = "knob")
+    val knob by animateDpAsState(
+        targetValue = if (checked) 22.dp else 3.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "knob",
+    )
+    val track by animateColorAsState(
+        targetValue = if (checked) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.outline
+        },
+        animationSpec = tween(180),
+        label = "track",
+    )
+    val knobColor by animateColorAsState(
+        targetValue = if (checked) {
+            MaterialTheme.colorScheme.background
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = tween(180),
+        label = "knobColor",
+    )
+
     Box(
         modifier = Modifier
-            .width(48.dp)
-            .height(28.dp)
-            .clip(CircleShape)
-            .background(
-                if (checked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-            )
-            .clickable { onChange(!checked) },
+            .size(width = 48.dp, height = 48.dp)
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onChange,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .offset {
-                    IntOffset(x = knob.roundToPx(), y = 3.dp.roundToPx())
-                }
-                .size(22.dp)
+                .width(48.dp)
+                .height(28.dp)
                 .clip(CircleShape)
-                .background(
-                    if (checked) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
-                ),
-        )
+                .background(track),
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(x = knob.roundToPx(), y = 3.dp.roundToPx()) }
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(knobColor),
+            )
+        }
     }
-}
-
-@Composable
-fun Divider() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(MaterialTheme.colorScheme.outline),
-    )
-}
-
-@Composable
-fun EmptyGap() {
-    Spacer(Modifier.height(0.dp))
 }

@@ -1,5 +1,20 @@
 package com.slate.weekly.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,24 +40,33 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
 import com.slate.weekly.data.Habit
+import com.slate.weekly.util.dayDescription
 import com.slate.weekly.util.dayLabel
 import com.slate.weekly.util.startOfWeek
+import com.slate.weekly.util.weekChecks
 import com.slate.weekly.util.weekDays
 import com.slate.weekly.util.weekRangeLabel
 import java.time.LocalDate
+import kotlin.math.min
 
 @Composable
 fun HomeScreen(
@@ -63,8 +87,10 @@ fun HomeScreen(
     val earliestWeek = remember(active) {
         active.minOfOrNull { LocalDate.ofEpochDay(it.createdDay).startOfWeek() }
     }
-    val done = active.sumOf { habit -> week.count { it.toEpochDay() in habit.checks } }
-    val target = active.sumOf { it.target }
+    val visible = remember(active, weekStart) {
+        val lastDay = weekStart.plusDays(6).toEpochDay()
+        active.filter { it.createdDay <= lastDay }
+    }
 
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -73,7 +99,7 @@ fun HomeScreen(
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -83,84 +109,126 @@ fun HomeScreen(
                     text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     SmallAction(stringResource(R.string.year), onYear)
-                    Spacer(Modifier.width(2.dp))
                     SmallAction(stringResource(R.string.settings), onSettings)
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ArrowText("‹", enabled = earliestWeek == null || weekStart > earliestWeek) { onShiftWeek(-1) }
-                Column(
-                    Modifier
+                ArrowText(
+                    glyph = "‹",
+                    description = stringResource(R.string.previous_week),
+                    enabled = earliestWeek != null && weekStart > earliestWeek,
+                    onClick = { onShiftWeek(-1) },
+                )
+                AnimatedContent(
+                    targetState = weekStart,
+                    modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 4.dp),
-                ) {
-                    Text(
-                        text = weekRangeLabel(weekStart),
-                        style = MaterialTheme.typography.headlineLarge,
-                    )
-                    if (active.isNotEmpty()) {
-                        Spacer(Modifier.height(5.dp))
+                    transitionSpec = {
+                        val forward = targetState > initialState
+                        (fadeIn(tween(180)) + slideInHorizontally(tween(260)) {
+                            if (forward) it / 5 else -it / 5
+                        }) togetherWith
+                            (fadeOut(tween(120)) + slideOutHorizontally(tween(180)) {
+                                if (forward) -it / 5 else it / 5
+                            })
+                    },
+                    label = "weekHeader",
+                ) { start ->
+                    val shown = remember(active, start) {
+                        val lastDay = start.plusDays(6).toEpochDay()
+                        active.filter { it.createdDay <= lastDay }
+                    }
+                    val shownDone = shown.sumOf { min(weekChecks(it, start), it.target) }
+                    val shownTarget = shown.sumOf { it.target }
+
+                    Column {
                         Text(
-                            text = stringResource(R.string.week_progress, done, target),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = weekRangeLabel(start),
+                            style = MaterialTheme.typography.headlineLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                        if (shown.isNotEmpty()) {
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = if (shownDone >= shownTarget) {
+                                    stringResource(R.string.week_complete)
+                                } else {
+                                    stringResource(R.string.week_progress, shownDone, shownTarget)
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else if (active.isNotEmpty()) {
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = stringResource(R.string.nothing_this_week),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
-                ArrowText("›", enabled = !isThisWeek) { onShiftWeek(1) }
-            }
-
-            if (!isThisWeek) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.back_to_this_week),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable(onClick = onThisWeek)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ArrowText(
+                    glyph = "›",
+                    description = stringResource(R.string.next_week),
+                    enabled = earliestWeek != null && !isThisWeek,
+                    onClick = { onShiftWeek(1) },
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            if (!isThisWeek) {
+                Spacer(Modifier.height(2.dp))
+                TextAction(
+                    text = stringResource(R.string.back_to_this_week),
+                    onClick = onThisWeek,
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
 
             if (active.isEmpty()) {
                 EmptyState(onAdd)
-            } else {
+            } else if (visible.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 108.dp),
+                    contentPadding = PaddingValues(bottom = 112.dp),
                 ) {
-                    items(active, key = { it.id }) { habit ->
+                    items(visible, key = { it.id }) { habit ->
                         HabitCard(
                             habit = habit,
                             week = week,
                             today = today,
                             onToggle = onToggle,
                             onOpen = onOpen,
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
             }
         }
 
-        if (active.isNotEmpty()) {
+        AnimatedVisibility(
+            visible = active.isNotEmpty(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 18.dp),
+            enter = fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.92f),
+            exit = fadeOut(tween(120)) + scaleOut(tween(140), targetScale = 0.92f),
+        ) {
             AddPill(
                 text = stringResource(R.string.add),
                 onClick = onAdd,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 16.dp)
-                    .fillMaxWidth(),
+                plus = true,
+                modifier = Modifier.width(158.dp),
             )
         }
     }
@@ -171,7 +239,7 @@ private fun EmptyState(onAdd: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 72.dp),
+            .padding(bottom = 64.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -189,7 +257,8 @@ private fun EmptyState(onAdd: () -> Unit) {
         AddPill(
             text = stringResource(R.string.add),
             onClick = onAdd,
-            modifier = Modifier.width(190.dp),
+            plus = true,
+            modifier = Modifier.width(172.dp),
         )
     }
 }
@@ -201,19 +270,20 @@ private fun HabitCard(
     today: LocalDate,
     onToggle: (String, LocalDate) -> Unit,
     onOpen: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(22.dp)
-    val done = week.count { it.toEpochDay() in habit.checks }
+    val shape = RoundedCornerShape(20.dp)
+    val done = week.count { it.toEpochDay() in habit.checks }.coerceAtMost(habit.target)
     val met = done >= habit.target
 
     Column(
-        Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .clickable { onOpen(habit.id) }
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .padding(horizontal = 16.dp, vertical = 15.dp),
+            .clickable { onOpen(habit.id) }
+            .padding(horizontal = 14.dp, vertical = 13.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -231,11 +301,12 @@ private fun HabitCard(
                 },
             )
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
         WeekStrip(
             days = week,
             checks = habit.checks,
             today = today,
+            firstDay = habit.createdDay,
             onToggle = { onToggle(habit.id, it) },
         )
     }
@@ -247,71 +318,105 @@ fun WeekStrip(
     checks: Set<Long>,
     today: LocalDate,
     onToggle: (LocalDate) -> Unit,
-    cell: Dp = 32.dp,
+    firstDay: Long = Long.MIN_VALUE,
+    cell: Dp = 30.dp,
 ) {
     val haptics = LocalHapticFeedback.current
+
     Row(Modifier.fillMaxWidth()) {
         days.forEach { day ->
-            val done = day.toEpochDay() in checks
-            val enabled = day <= today
+            val epoch = day.toEpochDay()
+            val exists = epoch >= firstDay
+            val done = epoch in checks
+            val enabled = exists && day <= today
             val isToday = day == today
 
+            val labelColor = when {
+                !exists -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                isToday -> MaterialTheme.colorScheme.onSurface
+                enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+            }
+            val borderColor by animateColorAsState(
+                targetValue = when {
+                    !exists || done -> Color.Transparent
+                    isToday -> MaterialTheme.colorScheme.onSurface
+                    !enabled -> MaterialTheme.colorScheme.outlineVariant
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                },
+                animationSpec = tween(160),
+                label = "dayBorder",
+            )
+            val borderWidth by animateDpAsState(
+                targetValue = if (isToday) 1.5.dp else 1.dp,
+                animationSpec = tween(160),
+                label = "dayBorderWidth",
+            )
+            val fillColor by animateColorAsState(
+                targetValue = if (done) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    Color.Transparent
+                },
+                animationSpec = tween(160),
+                label = "dayFill",
+            )
+            val fillScale by animateFloatAsState(
+                targetValue = if (done) 1f else 0.55f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+                label = "dayScale",
+            )
+
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+                    .then(
+                        if (enabled) {
+                            Modifier.toggleable(
+                                value = done,
+                                role = Role.Checkbox,
+                                onValueChange = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onToggle(day)
+                                },
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .semantics { contentDescription = dayDescription(day) },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = dayLabel(day),
                     style = MaterialTheme.typography.labelSmall,
-                    color = when {
-                        isToday -> MaterialTheme.colorScheme.onSurface
-                        enabled -> MaterialTheme.colorScheme.onSurfaceVariant
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                    },
+                    color = labelColor,
+                    modifier = Modifier.clearAndSetSemantics { },
                 )
                 Spacer(Modifier.height(6.dp))
                 Box(
-                    modifier = Modifier
-                        .size(cell + 8.dp)
-                        .clip(CircleShape)
-                        .then(
-                            if (enabled) {
-                                Modifier.toggleable(
-                                    value = done,
-                                    role = Role.Checkbox,
-                                    onValueChange = {
-                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onToggle(day)
-                                    },
-                                )
-                            } else {
-                                Modifier
-                            },
-                        ),
+                    modifier = Modifier.size(cell),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(cell)
+                            .fillMaxSize()
                             .clip(CircleShape)
-                            .background(
-                                if (done) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                            )
-                            .then(
-                                if (done) {
-                                    Modifier
-                                } else {
-                                    Modifier.border(
-                                        width = if (isToday) 1.5.dp else 1.dp,
-                                        color = when {
-                                            !enabled -> MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
-                                            isToday -> MaterialTheme.colorScheme.onSurface
-                                            else -> MaterialTheme.colorScheme.outline
-                                        },
-                                        shape = CircleShape,
-                                    )
-                                },
-                            ),
+                            .border(borderWidth, borderColor, CircleShape),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = fillScale
+                                scaleY = fillScale
+                            }
+                            .clip(CircleShape)
+                            .background(fillColor),
                     )
                 }
             }
