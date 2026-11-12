@@ -7,11 +7,12 @@ nothing else.
 
 - weekly grid: one row per habit, one circle per day, monday to sunday
 - per-day check-ins against a weekly target (1–7 times a week)
-- swipe through past weeks and mark missed days
+- step through past weeks and mark missed days
 - habit detail: streak, target, past weeks, rename, delete
 - year view: a compact heatmap of every day you kept
 - light, dark and auto themes
 - one optional daily reminder, scheduled at a time you choose
+- reset all habits without losing appearance or reminder settings
 - everything is stored locally with datastore. no account, no cloud, no tracking.
 
 ## design
@@ -20,8 +21,19 @@ nothing else.
 - font: inter, bundled in the app
 - no uppercase labels, no gradients, no shadows
 - lowercase copy in english only
-- quiet motion only: week changes, day fills, theme pills and screen fades
+- quiet motion only: week changes, day fills, the back-to-week reveal, theme pills
+  and screen fades
 - tabular numerals, 48dp touch targets, english dates on every phone
+
+## architecture
+
+- `data`: the habit model, pure `HabitRules`, and one `SlateStore` flow over datastore
+- `domain`: pure week progress, streak, year count and heatmap grid functions
+- `reminder`: one-time work that reschedules itself after every run
+- `ui`: one `SlateViewModel` owns state and actions, screens stay stateless,
+  navigation and the selected week survive rotation
+- backend behavior is covered by plain unit tests: dates, habit rules, progress
+  and reminder timing
 
 ## build
 
@@ -29,6 +41,8 @@ requirements: jdk 17, android sdk with platform 35 and build-tools 35.0.0.
 
 ```bash
 ./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew lintDebug
 ```
 
 the apk lands in `app/build/outputs/apk/debug/app-debug.apk`.

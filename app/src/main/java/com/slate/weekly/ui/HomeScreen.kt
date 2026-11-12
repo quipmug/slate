@@ -2,22 +2,16 @@ package com.slate.weekly.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,44 +23,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
 import com.slate.weekly.data.Habit
-import com.slate.weekly.util.dayDescription
-import com.slate.weekly.util.dayLabel
+import com.slate.weekly.domain.doneInWeek
+import com.slate.weekly.ui.components.AddPill
+import com.slate.weekly.ui.components.ChevronButton
+import com.slate.weekly.ui.components.ChevronDirection
+import com.slate.weekly.ui.components.EmptyState
+import com.slate.weekly.ui.components.SlateCard
+import com.slate.weekly.ui.components.SmallAction
+import com.slate.weekly.ui.components.TextAction
+import com.slate.weekly.ui.components.WeekStrip
 import com.slate.weekly.util.startOfWeek
-import com.slate.weekly.util.weekChecks
 import com.slate.weekly.util.weekDays
 import com.slate.weekly.util.weekRangeLabel
 import java.time.LocalDate
-import kotlin.math.min
 
 @Composable
 fun HomeScreen(
@@ -81,16 +65,17 @@ fun HomeScreen(
     onSettings: () -> Unit,
     onAdd: () -> Unit,
 ) {
-    val active = remember(habits) { habits.filter { !it.archived } }
     val week = remember(weekStart) { weekDays(weekStart) }
     val isThisWeek = weekStart == today.startOfWeek()
-    val earliestWeek = remember(active) {
-        active.minOfOrNull { LocalDate.ofEpochDay(it.createdDay).startOfWeek() }
+    val earliestWeek = remember(habits) {
+        habits.minOfOrNull { LocalDate.ofEpochDay(it.createdDay).startOfWeek() }
     }
-    val visible = remember(active, weekStart) {
+    val visible = remember(habits, weekStart) {
         val lastDay = weekStart.plusDays(6).toEpochDay()
-        active.filter { it.createdDay <= lastDay }
+        habits.filter { it.createdDay <= lastDay }
     }
+    val canGoBack = earliestWeek != null && weekStart > earliestWeek
+    val canGoForward = earliestWeek != null && !isThisWeek
 
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -118,10 +103,15 @@ fun HomeScreen(
             Spacer(Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ArrowText(
-                    glyph = "‹",
+                ChevronButton(
+                    direction = ChevronDirection.Left,
                     description = stringResource(R.string.previous_week),
-                    enabled = earliestWeek != null && weekStart > earliestWeek,
+                    enabled = canGoBack,
+                    color = if (canGoBack) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+                    },
                     onClick = { onShiftWeek(-1) },
                 )
                 AnimatedContent(
@@ -140,11 +130,11 @@ fun HomeScreen(
                     },
                     label = "weekHeader",
                 ) { start ->
-                    val shown = remember(active, start) {
+                    val shown = remember(habits, start) {
                         val lastDay = start.plusDays(6).toEpochDay()
-                        active.filter { it.createdDay <= lastDay }
+                        habits.filter { it.createdDay <= lastDay }
                     }
-                    val shownDone = shown.sumOf { min(weekChecks(it, start), it.target) }
+                    val shownDone = shown.sumOf { doneInWeek(it, start) }
                     val shownTarget = shown.sumOf { it.target }
 
                     Column {
@@ -165,7 +155,7 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        } else if (active.isNotEmpty()) {
+                        } else if (habits.isNotEmpty()) {
                             Spacer(Modifier.height(3.dp))
                             Text(
                                 text = stringResource(R.string.nothing_this_week),
@@ -175,26 +165,45 @@ fun HomeScreen(
                         }
                     }
                 }
-                ArrowText(
-                    glyph = "›",
+                ChevronButton(
+                    direction = ChevronDirection.Right,
                     description = stringResource(R.string.next_week),
-                    enabled = earliestWeek != null && !isThisWeek,
+                    enabled = canGoForward,
+                    color = if (canGoForward) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+                    },
                     onClick = { onShiftWeek(1) },
                 )
             }
 
-            if (!isThisWeek) {
-                Spacer(Modifier.height(2.dp))
-                TextAction(
-                    text = stringResource(R.string.back_to_this_week),
-                    onClick = onThisWeek,
-                )
+            AnimatedVisibility(
+                visible = !isThisWeek,
+                enter = fadeIn(tween(160)) + expandVertically(tween(220)),
+                exit = fadeOut(tween(100)) + shrinkVertically(tween(160)),
+            ) {
+                Column {
+                    Spacer(Modifier.height(2.dp))
+                    TextAction(
+                        text = stringResource(R.string.back_to_this_week),
+                        onClick = onThisWeek,
+                    )
+                }
             }
 
             Spacer(Modifier.height(14.dp))
 
-            if (active.isEmpty()) {
-                EmptyState(onAdd)
+            if (habits.isEmpty()) {
+                EmptyState(
+                    title = stringResource(R.string.nothing_yet),
+                    subtitle = stringResource(R.string.nothing_yet_sub),
+                    action = stringResource(R.string.add),
+                    onAction = onAdd,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 64.dp),
+                )
             } else if (visible.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -216,7 +225,7 @@ fun HomeScreen(
         }
 
         AnimatedVisibility(
-            visible = active.isNotEmpty(),
+            visible = habits.isNotEmpty(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -235,35 +244,6 @@ fun HomeScreen(
 }
 
 @Composable
-private fun EmptyState(onAdd: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 64.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.nothing_yet),
-            style = MaterialTheme.typography.headlineLarge,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.nothing_yet_sub),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(26.dp))
-        AddPill(
-            text = stringResource(R.string.add),
-            onClick = onAdd,
-            plus = true,
-            modifier = Modifier.width(172.dp),
-        )
-    }
-}
-
-@Composable
 private fun HabitCard(
     habit: Habit,
     week: List<LocalDate>,
@@ -272,23 +252,20 @@ private fun HabitCard(
     onOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(20.dp)
-    val done = week.count { it.toEpochDay() in habit.checks }.coerceAtMost(habit.target)
+    val done = doneInWeek(habit, week.first())
     val met = done >= habit.target
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable { onOpen(habit.id) }
-            .padding(horizontal = 14.dp, vertical = 13.dp),
+    SlateCard(
+        modifier = modifier,
+        onClick = { onOpen(habit.id) },
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 13.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = habit.name,
                 style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Text(
@@ -309,117 +286,5 @@ private fun HabitCard(
             firstDay = habit.createdDay,
             onToggle = { onToggle(habit.id, it) },
         )
-    }
-}
-
-@Composable
-fun WeekStrip(
-    days: List<LocalDate>,
-    checks: Set<Long>,
-    today: LocalDate,
-    onToggle: (LocalDate) -> Unit,
-    firstDay: Long = Long.MIN_VALUE,
-    cell: Dp = 30.dp,
-) {
-    val haptics = LocalHapticFeedback.current
-
-    Row(Modifier.fillMaxWidth()) {
-        days.forEach { day ->
-            val epoch = day.toEpochDay()
-            val exists = epoch >= firstDay
-            val done = epoch in checks
-            val enabled = exists && day <= today
-            val isToday = day == today
-
-            val labelColor = when {
-                !exists -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-                isToday -> MaterialTheme.colorScheme.onSurface
-                enabled -> MaterialTheme.colorScheme.onSurfaceVariant
-                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-            }
-            val borderColor by animateColorAsState(
-                targetValue = when {
-                    !exists || done -> Color.Transparent
-                    isToday -> MaterialTheme.colorScheme.onSurface
-                    !enabled -> MaterialTheme.colorScheme.outlineVariant
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                },
-                animationSpec = tween(160),
-                label = "dayBorder",
-            )
-            val borderWidth by animateDpAsState(
-                targetValue = if (isToday) 1.5.dp else 1.dp,
-                animationSpec = tween(160),
-                label = "dayBorderWidth",
-            )
-            val fillColor by animateColorAsState(
-                targetValue = if (done) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    Color.Transparent
-                },
-                animationSpec = tween(160),
-                label = "dayFill",
-            )
-            val fillScale by animateFloatAsState(
-                targetValue = if (done) 1f else 0.55f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium,
-                ),
-                label = "dayScale",
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-                    .then(
-                        if (enabled) {
-                            Modifier.toggleable(
-                                value = done,
-                                role = Role.Checkbox,
-                                onValueChange = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onToggle(day)
-                                },
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .semantics { contentDescription = dayDescription(day) },
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = dayLabel(day),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor,
-                    modifier = Modifier.clearAndSetSemantics { },
-                )
-                Spacer(Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier.size(cell),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .border(borderWidth, borderColor, CircleShape),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = fillScale
-                                scaleY = fillScale
-                            }
-                            .clip(CircleShape)
-                            .background(fillColor),
-                    )
-                }
-            }
-        }
     }
 }

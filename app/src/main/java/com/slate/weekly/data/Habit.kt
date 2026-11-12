@@ -9,13 +9,4 @@ data class Habit(
     val target: Int,
     val createdDay: Long,
     val checks: Set<Long> = emptySet(),
-    val archived: Boolean = false,
-)
-
-@Serializable
-data class SlateSettings(
-    val theme: String = "auto",
-    val reminderOn: Boolean = false,
-    val reminderHour: Int = 20,
-    val reminderMinute: Int = 0,
 )

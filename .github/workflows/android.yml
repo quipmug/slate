@@ -18,10 +18,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: build debug apk
+      - name: verify and build debug apk
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:

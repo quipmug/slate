@@ -26,11 +26,14 @@
     <string name="delete">delete</string>
     <string name="cancel">cancel</string>
     <string name="save">save</string>
+    <string name="decrease">decrease</string>
+    <string name="increase">increase</string>
     <string name="delete_title">delete “%1$s”?</string>
     <string name="delete_body">the history goes with it.</string>
 
     <string name="your_year">your year</string>
-    <string name="all_routines">all routines</string>
+    <string name="all_habits">all habits</string>
+    <string name="by_habit">by habit</string>
 
     <string name="appearance">appearance</string>
     <string name="light">light</string>
@@ -45,6 +48,13 @@
     <string name="reminder_channel_desc">a quiet nudge when the day is still open</string>
     <string name="notifications_off">notifications are off, so reminders cannot show.</string>
     <string name="open_settings">open settings</string>
+    <string name="reminder_one_open">%1$s is still open</string>
+
+    <string name="data">data</string>
+    <string name="reset_all">reset all</string>
+    <string name="reset_title">reset all habits?</string>
+    <string name="reset_body">every habit and its history will be erased. appearance and reminders stay.</string>
+    <string name="reset">reset</string>
 
     <string name="about">about</string>
     <string name="about_text">no account. no cloud. everything stays on this phone.</string>
@@ -58,6 +68,11 @@
     <plurals name="days_kept">
         <item quantity="one">%1$d day kept</item>
         <item quantity="other">%1$d days kept</item>
+    </plurals>
+
+    <plurals name="days_kept_this_year">
+        <item quantity="one">%1$d day this year</item>
+        <item quantity="other">%1$d days this year</item>
     </plurals>
 
     <plurals name="weeks_in_a_row">

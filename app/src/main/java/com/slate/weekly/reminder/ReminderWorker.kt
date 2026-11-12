@@ -13,9 +13,10 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.slate.weekly.MainActivity
 import com.slate.weekly.R
+import com.slate.weekly.data.Habit
 import com.slate.weekly.data.SlateStore
+import com.slate.weekly.domain.weekChecks
 import com.slate.weekly.util.startOfWeek
-import com.slate.weekly.util.weekChecks
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 
@@ -25,10 +26,22 @@ class ReminderWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val habits = SlateStore(applicationContext).habits.first()
-            .filter { !it.archived }
-        if (habits.isEmpty()) return Result.success()
+        val data = runCatching { SlateStore(applicationContext).data.first() }
+            .getOrNull()
+            ?: return Result.success()
+        val settings = data.settings
+        if (!settings.reminderOn) return Result.success()
 
+        runCatching { showIfNeeded(data.habits) }
+        Reminders.scheduleNext(
+            context = applicationContext,
+            hour = settings.reminderHour,
+            minute = settings.reminderMinute,
+        )
+        return Result.success()
+    }
+
+    private fun showIfNeeded(habits: List<Habit>) {
         val today = LocalDate.now()
         val todayEpoch = today.toEpochDay()
         val monday = today.startOfWeek()
@@ -38,15 +51,8 @@ class ReminderWorker(
                 todayEpoch !in habit.checks &&
                 weekChecks(habit, monday) < habit.target
         }
-        if (open.isEmpty()) return Result.success()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.POST_NOTIFICATIONS,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) return Result.success()
-        }
+        if (open.isEmpty()) return
+        if (!notificationsAllowed()) return
 
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -58,26 +64,48 @@ class ReminderWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val text = applicationContext.resources.getQuantityString(
-            R.plurals.still_open_n,
-            open.size,
-            open.size,
-        )
+        val text = if (open.size == 1) {
+            applicationContext.getString(R.string.reminder_one_open, open.first().name)
+        } else {
+            applicationContext.resources.getQuantityString(
+                R.plurals.still_open_n,
+                open.size,
+                open.size,
+            )
+        }
 
         val notification = NotificationCompat.Builder(applicationContext, Reminders.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_note)
             .setContentTitle(applicationContext.getString(R.string.app_name))
             .setContentText(text)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setShowWhen(false)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .build()
 
-        try {
-            NotificationManagerCompat.from(applicationContext).notify(11, notification)
-        } catch (_: SecurityException) {
-            return Result.success()
+        NotificationManagerCompat.from(applicationContext).let { manager ->
+            try {
+                manager.notify(NOTIFICATION_ID, notification)
+            } catch (_: SecurityException) {
+                // revoked between the check above and this call
+            }
         }
-        return Result.success()
+    }
+
+    private fun notificationsAllowed(): Boolean {
+        if (!NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()) {
+            return false
+        }
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(
+                applicationContext,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private companion object {
+        const val NOTIFICATION_ID = 11
     }
 }

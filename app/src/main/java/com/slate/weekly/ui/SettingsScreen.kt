@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -30,7 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
 import com.slate.weekly.data.SlateSettings
+import com.slate.weekly.data.ThemeMode
+import com.slate.weekly.ui.components.SectionLabel
+import com.slate.weekly.ui.components.SlateCard
+import com.slate.weekly.ui.components.SlateTopBar
+import com.slate.weekly.ui.components.Stepper
+import com.slate.weekly.ui.components.TextAction
+import com.slate.weekly.ui.components.Toggle
 import com.slate.weekly.util.formatTime
 
 @Composable
@@ -49,12 +57,13 @@ fun SettingsScreen(
     versionName: String,
     notificationsBlocked: Boolean,
     onBack: () -> Unit,
-    onTheme: (String) -> Unit,
+    onTheme: (ThemeMode) -> Unit,
     onReminder: (Boolean, Int, Int) -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onResetHabits: () -> Unit,
 ) {
-    var timeOpen by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(20.dp)
+    var timeOpen by rememberSaveable { mutableStateOf(false) }
+    var resetOpen by rememberSaveable { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -64,13 +73,7 @@ fun SettingsScreen(
             .padding(horizontal = 20.dp),
     ) {
         Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            SmallAction(
-                text = "‹ ${stringResource(R.string.back)}",
-                onClick = onBack,
-                description = stringResource(R.string.back),
-            )
-        }
+        SlateTopBar(onBack = onBack)
 
         Spacer(Modifier.height(10.dp))
         Text(
@@ -80,53 +83,44 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
         LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-                        .padding(16.dp),
-                ) {
+                SlateCard {
                     SectionLabel(stringResource(R.string.appearance))
                     Spacer(Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.selectableGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         ThemeChoice(
                             label = stringResource(R.string.light),
-                            selected = settings.theme == "light",
+                            selected = settings.theme == ThemeMode.Light,
                             modifier = Modifier.weight(1f),
-                            onClick = { onTheme("light") },
+                            onClick = { onTheme(ThemeMode.Light) },
                         )
                         ThemeChoice(
                             label = stringResource(R.string.dark),
-                            selected = settings.theme == "dark",
+                            selected = settings.theme == ThemeMode.Dark,
                             modifier = Modifier.weight(1f),
-                            onClick = { onTheme("dark") },
+                            onClick = { onTheme(ThemeMode.Dark) },
                         )
                         ThemeChoice(
                             label = stringResource(R.string.auto),
-                            selected = settings.theme == "auto",
+                            selected = settings.theme == ThemeMode.Auto,
                             modifier = Modifier.weight(1f),
-                            onClick = { onTheme("auto") },
+                            onClick = { onTheme(ThemeMode.Auto) },
                         )
                     }
                 }
             }
 
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-                        .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-                ) {
+                SlateCard(contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(R.string.reminder),
@@ -149,7 +143,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 48.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable { timeOpen = true }
                                 .padding(end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -182,14 +176,28 @@ fun SettingsScreen(
             }
 
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(shape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-                        .padding(16.dp),
-                ) {
+                SlateCard {
+                    SectionLabel(stringResource(R.string.data))
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { resetOpen = true },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.reset_all),
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            item {
+                SlateCard {
                     SectionLabel(stringResource(R.string.about))
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -219,6 +227,50 @@ fun SettingsScreen(
             },
         )
     }
+
+    if (resetOpen) {
+        AlertDialog(
+            onDismissRequest = { resetOpen = false },
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            title = {
+                Text(
+                    text = stringResource(R.string.reset_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.reset_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        resetOpen = false
+                        onResetHabits()
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.reset),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { resetOpen = false }) {
+                    Text(
+                        text = stringResource(R.string.cancel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -241,7 +293,7 @@ private fun ThemeChoice(
         targetValue = if (selected) {
             Color.Transparent
         } else {
-            MaterialTheme.colorScheme.outline
+            MaterialTheme.colorScheme.outlineVariant
         },
         animationSpec = tween(180),
         label = "themeBorder",
@@ -284,8 +336,8 @@ private fun TimeDialog(
     onDismiss: () -> Unit,
     onSave: (Int, Int) -> Unit,
 ) {
-    var hours by remember { mutableIntStateOf(hour) }
-    var minutes by remember { mutableIntStateOf(minute) }
+    var hours by rememberSaveable { mutableIntStateOf(hour) }
+    var minutes by rememberSaveable { mutableIntStateOf(minute) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

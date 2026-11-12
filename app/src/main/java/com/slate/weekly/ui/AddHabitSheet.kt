@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +39,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
+import com.slate.weekly.data.HabitRules
+import com.slate.weekly.ui.components.AddPill
+import com.slate.weekly.ui.components.Stepper
+import com.slate.weekly.ui.components.slateFieldColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -47,8 +52,8 @@ fun AddHabitSheet(
     onDismiss: () -> Unit,
     onAdd: (String, Int) -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var target by remember { mutableIntStateOf(3) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var target by rememberSaveable { mutableIntStateOf(HabitRules.DEFAULT_TARGET) }
     var submitting by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val focusRequester = remember { FocusRequester() }
@@ -98,7 +103,7 @@ fun AddHabitSheet(
             Spacer(Modifier.height(20.dp))
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it.take(48) },
+                onValueChange = { name = it.take(HabitRules.MAX_NAME_LENGTH) },
                 placeholder = {
                     Text(
                         text = stringResource(R.string.name_hint),
