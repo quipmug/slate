@@ -78,7 +78,9 @@ slate; the timer ends on its own, then the apps work normally again.
 
 the blocker uses android's accessibility service. slate only reads which
 package is in front, never what is on screen. settings, the dialer, the
-launcher, system ui and slate itself cannot be selected. to enable the service,
+launcher, system ui, the installer, the permission controller and slate itself
+can never be blocked: the service re-checks that list whenever it is about to
+close an app, so a stale list cannot lock the phone. to enable the service,
 open settings → focus → turn on; on android 13 and newer, a sideloaded copy may
 first need app info → “allow restricted settings”. the service can always be
 turned off again in android accessibility settings, so the timer is strict, not

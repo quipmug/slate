@@ -30,8 +30,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
@@ -80,15 +78,6 @@ fun WelcomeScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        awaitPointerEvent(PointerEventPass.Final)
-                            .changes
-                            .forEach { it.consume() }
-                    }
-                }
-            }
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 32.dp),
@@ -134,7 +123,6 @@ fun WelcomeScreen(
             AddPill(
                 text = stringResource(R.string.begin),
                 onClick = onBegin,
-                enabled = actionsIn,
                 modifier = Modifier
                     .width(172.dp)
                     .height(54.dp),

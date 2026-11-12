@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.Settings
 import java.util.Locale
 
 data class LaunchableApp(
@@ -36,6 +37,13 @@ fun loadLaunchableApps(context: Context): List<LaunchableApp> {
         .toList()
 }
 
+/**
+ * Packages that must stay reachable during a strict focus timer. Blocking any
+ * of these could trap the user: settings is the only way to turn the
+ * accessibility service off, the launcher gets them back home, and the dialer
+ * is needed for calls. The set is also used again inside the accessibility
+ * service, so a stale or hand-edited blocked list can never lock the phone.
+ */
 internal fun protectedPackages(context: Context): Set<String> {
     val packageManager = context.packageManager
     val protected = linkedSetOf(context.packageName)
@@ -51,14 +59,42 @@ internal fun protectedPackages(context: Context): Set<String> {
         Intent(Intent.ACTION_MAIN)
             .addCategory(Intent.CATEGORY_HOME),
     )
-    addFrom(Intent(android.provider.Settings.ACTION_SETTINGS))
+    addFrom(Intent(Settings.ACTION_SETTINGS))
     addFrom(Intent(Intent.ACTION_DIAL, Uri.parse("tel:")))
-    protected += setOf(
-        "com.android.systemui",
-        "com.android.permissioncontroller",
-        "com.google.android.permissioncontroller",
-        "com.android.packageinstaller",
-        "com.google.android.packageinstaller",
-    )
+
+    protected += CriticalPackages
     return protected
 }
+
+private val CriticalPackages = setOf(
+    "android",
+    "com.android.systemui",
+    "com.android.settings",
+    "com.android.settings.intelligence",
+    "com.google.android.settings",
+    "com.samsung.android.settings",
+    "com.huawei.android.settings",
+    "com.oplus.settings",
+    "com.coloros.settings",
+    "com.android.phone",
+    "com.android.server.telecom",
+    "com.android.dialer",
+    "com.google.android.dialer",
+    "com.samsung.android.dialer",
+    "com.android.incallui",
+    "com.android.emergency",
+    "com.android.packageinstaller",
+    "com.google.android.packageinstaller",
+    "com.samsung.android.packageinstaller",
+    "com.android.permissioncontroller",
+    "com.google.android.permissioncontroller",
+    "com.android.launcher",
+    "com.android.launcher3",
+    "com.google.android.apps.nexuslauncher",
+    "com.sec.android.app.launcher",
+    "com.miui.home",
+    "com.oplus.launcher",
+    "com.coloros.launcher",
+    "com.huawei.android.launcher",
+    "com.oneplus.launcher",
+)

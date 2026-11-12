@@ -3,6 +3,7 @@ package com.slate.weekly.focus
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import com.slate.weekly.SlateApp
+import com.slate.weekly.data.protectedPackages
 import com.slate.weekly.domain.isFocusActive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,9 +41,12 @@ class FocusAccessibilityService : AccessibilityService() {
         val foreground = event.packageName?.toString() ?: return
         if (foreground == packageName) return
         if (!isFocusActive(focusUntil, System.currentTimeMillis())) return
-        if (foreground in blockedPackages) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
-        }
+        if (foreground !in blockedPackages) return
+        // Re-check the live protected set instead of trusting the stored list:
+        // a launcher or settings package must never be blocked, even if the
+        // list was written before it was installed or edited externally.
+        if (foreground in protectedPackages(applicationContext)) return
+        performGlobalAction(GLOBAL_ACTION_HOME)
     }
 
     override fun onInterrupt() = Unit

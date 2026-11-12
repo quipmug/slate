@@ -28,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -259,12 +260,29 @@ fun SlateRoot(viewModel: SlateViewModel) {
                 enter = fadeIn(tween(420)),
                 exit = fadeOut(tween(280)),
             ) {
-                WelcomeScreen(
-                    onBegin = {
-                        welcomeDismissed = true
-                        viewModel.markWelcomeSeen()
-                    },
-                )
+                Box(Modifier.fillMaxSize()) {
+                    // A sibling below the welcome absorbs stray taps so they
+                    // cannot reach the app behind it. It is not an ancestor of
+                    // the begin button, so its pointer input cannot cancel the
+                    // button's tap gesture.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        awaitPointerEvent()
+                                    }
+                                }
+                            },
+                    )
+                    WelcomeScreen(
+                        onBegin = {
+                            welcomeDismissed = true
+                            viewModel.markWelcomeSeen()
+                        },
+                    )
+                }
             }
         }
     }
