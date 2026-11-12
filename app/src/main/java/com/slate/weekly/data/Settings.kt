@@ -20,6 +20,8 @@ data class SlateSettings(
     val reminderOn: Boolean = false,
     val reminderHour: Int = 20,
     val reminderMinute: Int = 0,
+    val focusUntil: Long = 0L,
+    val blockedPackages: Set<String> = emptySet(),
 )
 
 data class SlateData(

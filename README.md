@@ -14,6 +14,8 @@ nothing else.
 - year view: a compact heatmap of every day you kept
 - light, dark and auto themes
 - one optional daily reminder, scheduled at a time you choose, with a test action
+- strict focus: pick apps and a 1h, 4h, 8h or 24h timer; those apps close
+  until the timer ends on its own
 - reset all habits without losing appearance or reminder settings
 - everything is stored locally with datastore. no account, no cloud, no tracking.
 
@@ -37,11 +39,14 @@ nothing else.
 - `domain`: pure week progress, streak, year count and heatmap grid functions
 - `reminder`: one-time work that reschedules itself after every run; the
   notification builder is shared with the settings test action
+- `focus`: an accessibility service watches only which package is in front and
+  sends a blocked app home while a strict timer is running. it cannot read
+  screen content and slate has no internet permission.
 - `ui`: one `SlateViewModel` owns state and actions, screens stay stateless,
   navigation, the selected tab and the selected week survive rotation; the
   53-week trail is cached as a bitmap so scrolling stays cheap
-- backend behavior is covered by plain unit tests: dates, habit rules, progress
-  and reminder timing
+- backend behavior is covered by plain unit tests: dates, habit rules, progress,
+  reminder timing and focus timers
 
 ## build
 
@@ -63,6 +68,22 @@ or use android studio's generate signed bundle / apk flow.
 1. copy the apk to your phone and open it, or run `adb install -r app-debug.apk`.
 2. allow installs from the app you used to transfer the file if asked.
 3. no internet permission is requested at all.
+
+## strict focus
+
+focus is optional and off until you enable it in settings. choose the apps
+that should close, pick a duration, and confirm. while the timer runs, the
+selected apps are sent home as soon as they open. there is no stop button in
+slate; the timer ends on its own, then the apps work normally again.
+
+the blocker uses android's accessibility service. slate only reads which
+package is in front, never what is on screen. settings, the dialer, the
+launcher, system ui and slate itself cannot be selected. to enable the service,
+open settings → focus → turn on; on android 13 and newer, a sideloaded copy may
+first need app info → “allow restricted settings”. the service can always be
+turned off again in android accessibility settings, so the timer is strict, not
+impossible to escape. this is an independent implementation; slate does not
+integrate with digital wellbeing or samsung health.
 
 ## github actions
 

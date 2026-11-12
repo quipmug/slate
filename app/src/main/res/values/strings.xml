@@ -56,6 +56,31 @@
     <string name="send_test">send a test</string>
     <string name="reminder_preview_text">this is how a reminder will look.</string>
 
+    <string name="focus">focus</string>
+    <string name="blocked_apps">blocked apps</string>
+    <string name="focus_apps_hint">these apps close while a strict timer runs.</string>
+    <string name="focus_timer">timer</string>
+    <string name="choose_apps">choose</string>
+    <string name="focus_start">start focus</string>
+    <string name="focus_strict_note">a strict timer ends on its own. it cannot be stopped from slate.</string>
+    <string name="focus_service_off">the blocker is off, so apps will not close.</string>
+    <string name="turn_on">turn on</string>
+    <string name="focus_confirm_title">start a strict timer?</string>
+    <string name="focus_confirm_body">%1$s will be closed until %2$s. the timer cannot be stopped from slate; only android accessibility settings can turn the blocker off.</string>
+    <string name="focus_until">until %1$s</string>
+    <string name="focus_until_tomorrow">until tomorrow %1$s</string>
+    <string name="focus_until_date">until %1$d %2$s, %3$s</string>
+    <string name="focus_protected_note">settings, the dialer and the launcher stay available.</string>
+    <string name="search">search</string>
+    <string name="loading">loading…</string>
+    <string name="nothing_found">nothing found.</string>
+    <string name="duration_1h">1h</string>
+    <string name="duration_4h">4h</string>
+    <string name="duration_8h">8h</string>
+    <string name="duration_24h">24h</string>
+    <string name="focus_service_label">slate focus</string>
+    <string name="focus_service_desc">closes the apps you chose while a strict focus timer is running. slate only reads which app is in front; it never reads what is on screen.</string>
+
     <string name="data">data</string>
     <string name="reset_all">reset all</string>
     <string name="reset_title">reset all habits?</string>
@@ -89,5 +114,20 @@
     <plurals name="still_open_n">
         <item quantity="one">%1$d thing is still open</item>
         <item quantity="other">%1$d things are still open</item>
+    </plurals>
+
+    <plurals name="apps_n">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
+
+    <plurals name="apps_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+
+    <plurals name="focus_apps_blocked">
+        <item quantity="one">%1$d app is blocked</item>
+        <item quantity="other">%1$d apps are blocked</item>
     </plurals>
 </resources>

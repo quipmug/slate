@@ -121,6 +121,14 @@ class SlateViewModel(
         viewModelScope.launch { store.setReminder(enabled, hour, minute) }
     }
 
+    fun setBlockedApp(packageName: String, blocked: Boolean) {
+        viewModelScope.launch { store.setBlockedApp(packageName, blocked) }
+    }
+
+    fun startFocus(hours: Int) {
+        viewModelScope.launch { store.startFocus(hours) }
+    }
+
     fun previewReminder() {
         ReminderNotifier.preview(appContext)
     }

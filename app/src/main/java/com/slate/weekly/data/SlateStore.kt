@@ -6,8 +6,12 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.slate.weekly.domain.focusEnd
+import com.slate.weekly.domain.isFocusActive
 import java.io.IOException
 import java.time.LocalDate
 import java.util.UUID
@@ -38,6 +42,8 @@ class SlateStore(context: Context) {
     private val reminderHourKey = intPreferencesKey("reminder_hour")
     private val reminderMinuteKey = intPreferencesKey("reminder_minute")
     private val welcomeSeenKey = booleanPreferencesKey("welcome_seen")
+    private val focusUntilKey = longPreferencesKey("focus_until")
+    private val blockedPackagesKey = stringSetPreferencesKey("blocked_packages")
 
     private val preferences: Flow<Preferences> = appContext.slateData.data
         .catch { error ->
@@ -117,6 +123,36 @@ class SlateStore(context: Context) {
         }
     }
 
+    suspend fun setBlockedApp(packageName: String, blocked: Boolean) {
+        val clean = packageName.trim()
+        if (clean.isEmpty() || clean in protectedPackages(appContext)) return
+        appContext.slateData.edit { prefs ->
+            val settings = readSettings(prefs)
+            if (isFocusActive(settings.focusUntil, System.currentTimeMillis())) return@edit
+            val next = if (blocked) {
+                settings.blockedPackages + clean
+            } else {
+                settings.blockedPackages - clean
+            }
+            prefs[blockedPackagesKey] = next
+        }
+    }
+
+    suspend fun startFocus(hours: Int) {
+        appContext.slateData.edit { prefs ->
+            val settings = readSettings(prefs)
+            val now = System.currentTimeMillis()
+            if (isFocusActive(settings.focusUntil, now)) return@edit
+            val protected = protectedPackages(appContext)
+            val packages = settings.blockedPackages
+                .map { it.trim() }
+                .filterTo(LinkedHashSet()) { it.isNotEmpty() && it !in protected }
+            if (packages.isEmpty()) return@edit
+            prefs[blockedPackagesKey] = packages
+            prefs[focusUntilKey] = focusEnd(now, hours)
+        }
+    }
+
     private suspend fun mutateHabit(habitId: String, transform: (Habit) -> Habit) {
         mutateHabits { habits ->
             habits.map { habit -> if (habit.id == habitId) transform(habit) else habit }
@@ -142,5 +178,7 @@ class SlateStore(context: Context) {
         reminderOn = prefs[reminderOnKey] ?: false,
         reminderHour = (prefs[reminderHourKey] ?: 20).coerceIn(0, 23),
         reminderMinute = (prefs[reminderMinuteKey] ?: 0).coerceIn(0, 59),
+        focusUntil = prefs[focusUntilKey] ?: 0L,
+        blockedPackages = prefs[blockedPackagesKey] ?: emptySet(),
     )
 }

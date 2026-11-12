@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -27,41 +29,70 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
 import com.slate.weekly.data.SlateSettings
 import com.slate.weekly.data.ThemeMode
+import com.slate.weekly.domain.focusEnd
+import com.slate.weekly.domain.isFocusActive
+import com.slate.weekly.ui.components.AddPill
+import com.slate.weekly.ui.components.Chevron
+import com.slate.weekly.ui.components.ChevronDirection
 import com.slate.weekly.ui.components.SectionLabel
 import com.slate.weekly.ui.components.SlateCard
 import com.slate.weekly.ui.components.Stepper
 import com.slate.weekly.ui.components.TextAction
 import com.slate.weekly.ui.components.Toggle
 import com.slate.weekly.util.formatTime
+import com.slate.weekly.util.monthName
+import java.time.Instant
+import java.time.ZoneId
+import kotlinx.coroutines.delay
 
 @Composable
 fun SettingsScreen(
     settings: SlateSettings,
     versionName: String,
     notificationsBlocked: Boolean,
+    focusServiceEnabled: Boolean,
     onTheme: (ThemeMode) -> Unit,
     onReminder: (Boolean, Int, Int) -> Unit,
     onPreviewReminder: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onOpenFocusApps: () -> Unit,
+    onStartFocus: (Int) -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
     onResetHabits: () -> Unit,
 ) {
     var timeOpen by rememberSaveable { mutableStateOf(false) }
     var resetOpen by rememberSaveable { mutableStateOf(false) }
+    var focusHours by rememberSaveable { mutableIntStateOf(4) }
+    var confirmHours by rememberSaveable { mutableIntStateOf(0) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(settings.focusUntil) {
+        now = System.currentTimeMillis()
+        while (isFocusActive(settings.focusUntil, System.currentTimeMillis())) {
+            delay(15_000)
+            now = System.currentTimeMillis()
+        }
+    }
+    val focusActive = isFocusActive(settings.focusUntil, now)
+    val focusCount = settings.blockedPackages.size
 
     Column(
         Modifier
@@ -91,19 +122,19 @@ fun SettingsScreen(
                         modifier = Modifier.selectableGroup(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        ThemeChoice(
+                        ChoicePill(
                             label = stringResource(R.string.light),
                             selected = settings.theme == ThemeMode.Light,
                             modifier = Modifier.weight(1f),
                             onClick = { onTheme(ThemeMode.Light) },
                         )
-                        ThemeChoice(
+                        ChoicePill(
                             label = stringResource(R.string.dark),
                             selected = settings.theme == ThemeMode.Dark,
                             modifier = Modifier.weight(1f),
                             onClick = { onTheme(ThemeMode.Dark) },
                         )
-                        ThemeChoice(
+                        ChoicePill(
                             label = stringResource(R.string.auto),
                             selected = settings.theme == ThemeMode.Auto,
                             modifier = Modifier.weight(1f),
@@ -178,6 +209,129 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            item(contentType = "focus") {
+                SlateCard {
+                    SectionLabel(stringResource(R.string.focus))
+                    Spacer(Modifier.height(12.dp))
+                    if (focusActive) {
+                        Text(
+                            text = focusEndLabel(settings.focusUntil, now),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.focus_apps_blocked,
+                                focusCount,
+                                focusCount,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.focus_strict_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (!focusServiceEnabled) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = stringResource(R.string.focus_service_off),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            TextAction(
+                                text = stringResource(R.string.turn_on),
+                                onClick = onOpenAccessibilitySettings,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(onClick = onOpenFocusApps),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.blocked_apps),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = if (focusCount == 0) {
+                                    stringResource(R.string.choose_apps)
+                                } else {
+                                    pluralStringResource(
+                                        R.plurals.apps_n,
+                                        focusCount,
+                                        focusCount,
+                                    )
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Chevron(
+                                direction = ChevronDirection.Right,
+                                modifier = Modifier.size(14.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outlineVariant),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.focus_timer),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FocusDurations.forEach { hours ->
+                                ChoicePill(
+                                    label = stringResource(durationLabel(hours)),
+                                    selected = focusHours == hours,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { focusHours = hours },
+                                )
+                            }
+                        }
+                        if (!focusServiceEnabled) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = stringResource(R.string.focus_service_off),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            TextAction(
+                                text = stringResource(R.string.turn_on),
+                                onClick = onOpenAccessibilitySettings,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        AddPill(
+                            text = stringResource(R.string.focus_start),
+                            onClick = { confirmHours = focusHours },
+                            enabled = focusCount > 0 && focusServiceEnabled,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.focus_strict_note),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -278,10 +432,88 @@ fun SettingsScreen(
             },
         )
     }
+
+    if (confirmHours > 0) {
+        val hours = confirmHours
+        val nowMillis = System.currentTimeMillis()
+        val endLabel = focusEndLabel(focusEnd(nowMillis, hours), nowMillis)
+        AlertDialog(
+            onDismissRequest = { confirmHours = 0 },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            title = {
+                Text(
+                    text = stringResource(R.string.focus_confirm_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(
+                        R.string.focus_confirm_body,
+                        pluralStringResource(R.plurals.apps_n, focusCount, focusCount),
+                        endLabel,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmHours = 0
+                        onStartFocus(hours)
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.focus_start),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmHours = 0 }) {
+                    Text(
+                        text = stringResource(R.string.cancel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+    }
 }
 
 @Composable
-private fun ThemeChoice(
+private fun focusEndLabel(untilMillis: Long, nowMillis: Long): String {
+    val zone = ZoneId.systemDefault()
+    val now = Instant.ofEpochMilli(nowMillis).atZone(zone)
+    val end = Instant.ofEpochMilli(untilMillis).atZone(zone)
+    val time = formatTime(end.hour, end.minute)
+    return when (end.toLocalDate()) {
+        now.toLocalDate() -> stringResource(R.string.focus_until, time)
+        now.toLocalDate().plusDays(1) -> stringResource(R.string.focus_until_tomorrow, time)
+        else -> stringResource(
+            R.string.focus_until_date,
+            end.dayOfMonth,
+            monthName(end.month, true),
+            time,
+        )
+    }
+}
+
+private val FocusDurations = listOf(1, 4, 8, 24)
+
+private fun durationLabel(hours: Int): Int = when (hours) {
+    1 -> R.string.duration_1h
+    4 -> R.string.duration_4h
+    8 -> R.string.duration_8h
+    else -> R.string.duration_24h
+}
+
+@Composable
+private fun ChoicePill(
     label: String,
     selected: Boolean,
     modifier: Modifier = Modifier,

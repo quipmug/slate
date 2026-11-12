@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.slate.weekly.BuildConfig
 import com.slate.weekly.data.ThemeMode
+import com.slate.weekly.focus.FocusAccess
 import com.slate.weekly.ui.theme.SlateTheme
 import com.slate.weekly.util.coerceWeek
 import com.slate.weekly.util.startOfWeek
@@ -58,6 +59,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
         mutableStateOf(state.today)
     }
     var notificationsAllowed by remember { mutableStateOf(notificationsEnabled(context)) }
+    var focusServiceEnabled by remember { mutableStateOf(FocusAccess.isServiceEnabled(context)) }
 
     val dark = when (state.settings.theme) {
         ThemeMode.Light -> false
@@ -75,6 +77,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshToday()
                 notificationsAllowed = notificationsEnabled(context)
+                focusServiceEnabled = FocusAccess.isServiceEnabled(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -100,7 +103,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
     }
 
     BackHandler(enabled = screen != Screen.Home && !addOpen) {
-        screen = Screen.Home
+        screen = screen.back()
     }
 
     SlateTheme(dark = dark) {
@@ -187,6 +190,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         settings = state.settings,
                         versionName = BuildConfig.VERSION_NAME,
                         notificationsBlocked = !notificationsAllowed,
+                        focusServiceEnabled = focusServiceEnabled,
                         onTheme = viewModel::setTheme,
                         onReminder = { enabled, hour, minute ->
                             viewModel.setReminder(enabled, hour, minute)
@@ -201,11 +205,22 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         onOpenNotificationSettings = {
                             openNotificationSettings(context)
                         },
+                        onOpenFocusApps = { screen = Screen.FocusApps },
+                        onStartFocus = viewModel::startFocus,
+                        onOpenAccessibilitySettings = {
+                            FocusAccess.openAccessibilitySettings(context)
+                        },
                         onResetHabits = {
                             viewModel.resetHabits()
                             weekStart = state.today.startOfWeek()
                             screen = Screen.Home
                         },
+                    )
+
+                    Screen.FocusApps -> FocusAppsScreen(
+                        selected = state.settings.blockedPackages,
+                        onToggle = viewModel::setBlockedApp,
+                        onBack = { screen = Screen.Settings },
                     )
                 }
             }
