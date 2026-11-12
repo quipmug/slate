@@ -10,6 +10,7 @@ import com.slate.weekly.data.Habit
 import com.slate.weekly.data.SlateSettings
 import com.slate.weekly.data.SlateStore
 import com.slate.weekly.data.ThemeMode
+import com.slate.weekly.reminder.ReminderNotifier
 import com.slate.weekly.reminder.Reminders
 import java.time.Duration
 import java.time.LocalDate
@@ -30,6 +31,7 @@ data class SlateUiState(
     val settings: SlateSettings = SlateSettings(),
     val today: LocalDate = LocalDate.now(),
     val loaded: Boolean = false,
+    val welcomeSeen: Boolean = false,
 )
 
 class SlateViewModel(
@@ -46,6 +48,7 @@ class SlateViewModel(
             settings = data.settings,
             today = date,
             loaded = true,
+            welcomeSeen = data.welcomeSeen,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -106,12 +109,20 @@ class SlateViewModel(
         viewModelScope.launch { store.resetHabits() }
     }
 
+    fun markWelcomeSeen() {
+        viewModelScope.launch { store.markWelcomeSeen() }
+    }
+
     fun setTheme(theme: ThemeMode) {
         viewModelScope.launch { store.setTheme(theme) }
     }
 
     fun setReminder(enabled: Boolean, hour: Int, minute: Int) {
         viewModelScope.launch { store.setReminder(enabled, hour, minute) }
+    }
+
+    fun previewReminder() {
+        ReminderNotifier.preview(appContext)
     }
 
     companion object {

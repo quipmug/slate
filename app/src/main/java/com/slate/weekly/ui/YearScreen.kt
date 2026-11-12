@@ -113,7 +113,11 @@ fun YearScreen(
                     SectionLabel(stringResource(R.string.by_habit))
                 }
 
-                itemsIndexed(habits, key = { _, habit -> habit.id }) { index, habit ->
+                itemsIndexed(
+                    habits,
+                    key = { _, habit -> habit.id },
+                    contentType = { _, _ -> "habit" },
+                ) { index, habit ->
                     val count = remember(habit, year, today) {
                         daysKeptInYear(habit, year, today)
                     }
@@ -171,10 +175,16 @@ private fun YearHeatmap(
         val gridHeight = cell * 7f + gap * 6f
         val step = cell + gap
         val gridStart = weeks.first()
-        val monthColumns = remember(gridStart, step) {
+        val gridStartEpoch = remember(gridStart) { gridStart.toEpochDay() }
+        val todayEpoch = remember(today) { today.toEpochDay() }
+        val yearStart = remember(year) { LocalDate.of(year, 1, 1).toEpochDay() }
+        val yearEnd = remember(year) { LocalDate.of(year, 12, 31).toEpochDay() }
+        val monthColumns = remember(gridStartEpoch, year, step) {
             Month.entries.map { month ->
-                val first = LocalDate.of(gridStart.year, month, 1)
-                val column = ((first.toEpochDay() - gridStart.toEpochDay()) / 7).toInt()
+                val first = LocalDate.of(year, month, 1)
+                val column = ((first.toEpochDay() - gridStartEpoch) / 7)
+                    .toInt()
+                    .coerceAtLeast(0)
                 month to (step * column.toFloat())
             }
         }
@@ -206,10 +216,7 @@ private fun YearHeatmap(
                 val stepPx = cell.toPx() + gapPx
                 val cellPx = cell.toPx()
                 val radius = CornerRadius(cellPx * 0.3f)
-                val firstEpoch = gridStart.toEpochDay()
-                val todayEpoch = today.toEpochDay()
-                val yearStart = LocalDate.of(year, 1, 1).toEpochDay()
-                val yearEnd = LocalDate.of(year, 12, 31).toEpochDay()
+                val firstEpoch = gridStartEpoch
 
                 for (column in weeks.indices) {
                     for (row in 0..6) {

@@ -11,7 +11,7 @@ object HabitRules {
 
     fun cleanTarget(value: Int): Int = value.coerceIn(MIN_TARGET, MAX_TARGET)
 
-    fun normalize(habits: List<Habit>): List<Habit> {
+    fun normalize(habits: List<Habit>, today: Long = Long.MAX_VALUE): List<Habit> {
         val seen = HashSet<String>(habits.size)
         return habits.mapNotNull { habit ->
             val id = habit.id.trim()
@@ -19,11 +19,15 @@ object HabitRules {
             if (id.isEmpty() || name.isEmpty() || !seen.add(id)) {
                 null
             } else {
+                val createdDay = habit.createdDay.coerceAtMost(today)
                 habit.copy(
                     id = id,
                     name = name,
                     target = cleanTarget(habit.target),
-                    checks = habit.checks.filterTo(LinkedHashSet()) { it >= habit.createdDay },
+                    createdDay = createdDay,
+                    checks = habit.checks.filterTo(LinkedHashSet()) {
+                        it in createdDay..today
+                    },
                 )
             }
         }

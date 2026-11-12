@@ -56,6 +56,7 @@ fun SettingsScreen(
     notificationsBlocked: Boolean,
     onTheme: (ThemeMode) -> Unit,
     onReminder: (Boolean, Int, Int) -> Unit,
+    onPreviewReminder: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onResetHabits: () -> Unit,
 ) {
@@ -82,7 +83,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 132.dp),
         ) {
-            item {
+            item(contentType = "appearance") {
                 SlateCard {
                     SectionLabel(stringResource(R.string.appearance))
                     Spacer(Modifier.height(12.dp))
@@ -112,7 +113,7 @@ fun SettingsScreen(
                 }
             }
 
-            item {
+            item(contentType = "reminder") {
                 SlateCard(contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -163,12 +164,25 @@ fun SettingsScreen(
                                 onClick = onOpenNotificationSettings,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(end = 8.dp),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                TextAction(
+                                    text = stringResource(R.string.send_test),
+                                    onClick = onPreviewReminder,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            item {
+            item(contentType = "data") {
                 SlateCard {
                     SectionLabel(stringResource(R.string.data))
                     Spacer(Modifier.height(4.dp))
@@ -189,7 +203,7 @@ fun SettingsScreen(
                 }
             }
 
-            item {
+            item(contentType = "about") {
                 SlateCard {
                     SectionLabel(stringResource(R.string.about))
                     Spacer(Modifier.height(8.dp))

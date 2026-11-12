@@ -7,12 +7,13 @@ nothing else.
 
 - weekly grid: one row per habit, one softened square per day, monday to sunday
 - a quiet trail of the last 53 weeks on every habit card
+- a first-run welcome that fills a small grid, then stays out of the way
 - per-day check-ins against a weekly target (1–7 times a week)
 - step through past weeks and mark missed days
 - habit detail: streak, target, past weeks, rename, delete
 - year view: a compact heatmap of every day you kept
 - light, dark and auto themes
-- one optional daily reminder, scheduled at a time you choose
+- one optional daily reminder, scheduled at a time you choose, with a test action
 - reset all habits without losing appearance or reminder settings
 - everything is stored locally with datastore. no account, no cloud, no tracking.
 
@@ -25,8 +26,8 @@ nothing else.
 - lowercase copy in english only
 - rounded-square days, one-canvas heatmaps, hairline cards
 - a floating bottom dock with habits, year and settings
-- quiet motion only: week changes, day fills, the back-to-week reveal, dock pills
-  and screen fades
+- quiet motion only: the first-run grid fill, week changes, day fills,
+  the back-to-week reveal, dock pills and screen fades
 - tabular numerals, 48dp touch targets, english dates on every phone
 
 ## architecture
@@ -34,9 +35,11 @@ nothing else.
 - `data`: the habit model, pure `HabitRules`, and separate habit and settings
   flows over datastore; json decoding runs off the main thread
 - `domain`: pure week progress, streak, year count and heatmap grid functions
-- `reminder`: one-time work that reschedules itself after every run
+- `reminder`: one-time work that reschedules itself after every run; the
+  notification builder is shared with the settings test action
 - `ui`: one `SlateViewModel` owns state and actions, screens stay stateless,
-  navigation, the selected tab and the selected week survive rotation
+  navigation, the selected tab and the selected week survive rotation; the
+  53-week trail is cached as a bitmap so scrolling stays cheap
 - backend behavior is covered by plain unit tests: dates, habit rules, progress
   and reminder timing
 

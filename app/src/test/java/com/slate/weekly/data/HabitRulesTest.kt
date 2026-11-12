@@ -44,6 +44,21 @@ class HabitRulesTest {
     }
 
     @Test
+    fun `future creation is moved to today and future checks are dropped`() {
+        val habits = HabitRules.normalize(
+            listOf(
+                habit(
+                    createdDay = 120,
+                    checks = setOf(109, 110, 111, 120),
+                ),
+            ),
+            today = 110,
+        )
+        assertEquals(110, habits.single().createdDay)
+        assertEquals(setOf(110L), habits.single().checks)
+    }
+
+    @Test
     fun `long names stay within the limit`() {
         val habits = HabitRules.normalize(listOf(habit(name = "x".repeat(80))))
         assertTrue(habits.single().name.length == HabitRules.MAX_NAME_LENGTH)

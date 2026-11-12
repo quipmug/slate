@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -73,6 +72,7 @@ import com.slate.weekly.ui.components.Stepper
 import com.slate.weekly.ui.components.TextAction
 import com.slate.weekly.ui.components.WeekStrip
 import com.slate.weekly.ui.components.slateFieldColors
+import com.slate.weekly.util.coerceWeek
 import com.slate.weekly.util.startOfWeek
 import com.slate.weekly.util.weekDays
 import com.slate.weekly.util.weekRangeLabel
@@ -91,11 +91,11 @@ fun HabitScreen(
     onDelete: () -> Unit,
 ) {
     val thisWeek = today.startOfWeek()
-    val firstWeek = remember(habit.createdDay) {
-        LocalDate.ofEpochDay(habit.createdDay).startOfWeek()
+    val firstWeek = remember(habit.createdDay, thisWeek) {
+        minOf(LocalDate.ofEpochDay(habit.createdDay).startOfWeek(), thisWeek)
     }
     var weekStart by rememberSaveable(habit.id, stateSaver = LocalDateSaver) {
-        mutableStateOf(initialWeek.coerceIn(firstWeek, thisWeek))
+        mutableStateOf(coerceWeek(initialWeek, firstWeek, thisWeek))
     }
     var renaming by rememberSaveable { mutableStateOf(false) }
     var deleting by rememberSaveable { mutableStateOf(false) }
@@ -289,7 +289,7 @@ fun HabitScreen(
                     Spacer(Modifier.height(26.dp))
                     SectionLabel(stringResource(R.string.last_weeks))
                 }
-                items(pastWeeks) { monday ->
+                items(pastWeeks, contentType = { "pastWeek" }) { monday ->
                     PastWeekRow(
                         habit = habit,
                         monday = monday,
@@ -451,7 +451,7 @@ private fun PastWeekRow(
                 Box(
                     Modifier
                         .size(7.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(2.dp))
                         .background(
                             when {
                                 !exists -> MaterialTheme.colorScheme.outlineVariant

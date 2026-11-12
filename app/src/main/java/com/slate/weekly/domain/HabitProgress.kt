@@ -17,6 +17,16 @@ fun doneInWeek(habit: Habit, monday: LocalDate): Int =
 fun isWeekComplete(habit: Habit, monday: LocalDate): Boolean =
     weekChecks(habit, monday) >= habit.target
 
+fun openHabits(habits: List<Habit>, today: LocalDate): List<Habit> {
+    val todayEpoch = today.toEpochDay()
+    val monday = today.startOfWeek()
+    return habits.filter { habit ->
+        todayEpoch >= habit.createdDay &&
+            todayEpoch !in habit.checks &&
+            weekChecks(habit, monday) < habit.target
+    }
+}
+
 fun weeksInARow(habit: Habit, today: LocalDate): Int {
     if (habit.target <= 0) return 0
     val firstMonday = LocalDate.ofEpochDay(habit.createdDay).startOfWeek()

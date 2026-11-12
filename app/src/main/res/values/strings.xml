@@ -17,6 +17,9 @@
     <string name="nothing_yet_sub">one thing, a few times a week.</string>
     <string name="add">add</string>
 
+    <string name="welcome_tagline">small marks, kept weekly.</string>
+    <string name="begin">begin</string>
+
     <string name="new_habit">new habit</string>
     <string name="name_hint">a run, a page, a call</string>
     <string name="times_a_week">times a week</string>
@@ -50,6 +53,8 @@
     <string name="notifications_off">notifications are off, so reminders cannot show.</string>
     <string name="open_settings">open settings</string>
     <string name="reminder_one_open">%1$s is still open</string>
+    <string name="send_test">send a test</string>
+    <string name="reminder_preview_text">this is how a reminder will look.</string>
 
     <string name="data">data</string>
     <string name="reset_all">reset all</string>

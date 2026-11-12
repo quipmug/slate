@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -88,7 +89,10 @@ fun HomeScreen(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleMedium,
             )
-            PlusAction(onClick = onAdd)
+            PlusAction(
+                onClick = onAdd,
+                modifier = Modifier.offset(x = 6.dp),
+            )
         }
 
         Spacer(Modifier.height(2.dp))
@@ -201,7 +205,11 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 132.dp),
             ) {
-                items(visible, key = { it.id }) { habit ->
+                items(
+                    items = visible,
+                    key = { it.id },
+                    contentType = { "habit" },
+                ) { habit ->
                     HabitCard(
                         habit = habit,
                         week = week,

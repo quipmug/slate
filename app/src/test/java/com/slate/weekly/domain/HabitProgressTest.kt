@@ -91,6 +91,31 @@ class HabitProgressTest {
     }
 
     @Test
+    fun `open habits exclude checked days and finished weeks`() {
+        val today = LocalDate.of(2026, 11, 11)
+        val open = habit(target = 3)
+        val checkedToday = habit(
+            target = 3,
+            checks = setOf(today),
+        )
+        val weekDone = habit(
+            target = 2,
+            checks = setOf(
+                LocalDate.of(2026, 11, 9),
+                LocalDate.of(2026, 11, 10),
+            ),
+        )
+        val future = habit(
+            target = 3,
+            created = LocalDate.of(2026, 11, 12),
+        )
+        assertEquals(
+            listOf(open),
+            openHabits(listOf(open, checkedToday, weekDone, future), today),
+        )
+    }
+
+    @Test
     fun `days kept are counted once across habits`() {
         val first = habit(
             checks = setOf(

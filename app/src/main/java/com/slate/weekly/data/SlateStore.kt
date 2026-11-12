@@ -37,26 +37,32 @@ class SlateStore(context: Context) {
     private val reminderOnKey = booleanPreferencesKey("reminder_on")
     private val reminderHourKey = intPreferencesKey("reminder_hour")
     private val reminderMinuteKey = intPreferencesKey("reminder_minute")
+    private val welcomeSeenKey = booleanPreferencesKey("welcome_seen")
 
-    val settings: Flow<SlateSettings> = appContext.slateData.data
+    private val preferences: Flow<Preferences> = appContext.slateData.data
         .catch { error ->
             if (error is IOException) emit(emptyPreferences()) else throw error
         }
+
+    val settings: Flow<SlateSettings> = preferences
         .map(::readSettings)
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
 
+    private val welcomeSeen: Flow<Boolean> = preferences
+        .map { prefs -> prefs[welcomeSeenKey] ?: false }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+
     val data: Flow<SlateData> = combine(
-        appContext.slateData.data
-            .catch { error ->
-                if (error is IOException) emit(emptyPreferences()) else throw error
-            }
+        preferences
             .map { prefs -> prefs[habitsKey] }
             .distinctUntilChanged()
             .map(::decodeHabits),
         settings,
-    ) { habits, settings ->
-        SlateData(habits = habits, settings = settings)
+        welcomeSeen,
+    ) { habits, settings, seen ->
+        SlateData(habits = habits, settings = settings, welcomeSeen = seen)
     }.flowOn(Dispatchers.Default)
 
     suspend fun add(name: String, target: Int): Boolean {
@@ -95,6 +101,10 @@ class SlateStore(context: Context) {
         appContext.slateData.edit { prefs -> prefs.remove(habitsKey) }
     }
 
+    suspend fun markWelcomeSeen() {
+        appContext.slateData.edit { prefs -> prefs[welcomeSeenKey] = true }
+    }
+
     suspend fun setTheme(theme: ThemeMode) {
         appContext.slateData.edit { prefs -> prefs[themeKey] = theme.key }
     }
@@ -124,7 +134,7 @@ class SlateStore(context: Context) {
         if (raw.isNullOrBlank()) return emptyList()
         val parsed = runCatching { json.decodeFromString<List<Habit>>(raw) }
             .getOrDefault(emptyList())
-        return HabitRules.normalize(parsed)
+        return HabitRules.normalize(parsed, today = LocalDate.now().toEpochDay())
     }
 
     private fun readSettings(prefs: Preferences): SlateSettings = SlateSettings(

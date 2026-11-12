@@ -25,4 +25,5 @@ data class SlateSettings(
 data class SlateData(
     val habits: List<Habit> = emptyList(),
     val settings: SlateSettings = SlateSettings(),
+    val welcomeSeen: Boolean = false,
 )

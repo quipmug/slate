@@ -16,6 +16,11 @@ fun weeksEndingAt(monday: LocalDate, count: Int): List<LocalDate> {
     return List(count) { index -> monday.minusWeeks((count - 1 - index).toLong()) }
 }
 
+fun coerceWeek(week: LocalDate, firstWeek: LocalDate, currentWeek: LocalDate): LocalDate {
+    val floor = minOf(firstWeek, currentWeek)
+    return week.coerceIn(floor, currentWeek)
+}
+
 fun dayLabel(date: LocalDate): String =
     date.dayOfWeek.getDisplayName(TextStyle.SHORT, SlateLocale).lowercase(SlateLocale).take(2)
 

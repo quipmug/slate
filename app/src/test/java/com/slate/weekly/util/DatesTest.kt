@@ -51,6 +51,23 @@ class DatesTest {
     }
 
     @Test
+    fun `coerce week keeps navigation inside the habit lifetime`() {
+        val current = LocalDate.of(2026, 11, 9)
+        val first = LocalDate.of(2026, 10, 26)
+        assertEquals(LocalDate.of(2026, 11, 2), coerceWeek(LocalDate.of(2026, 11, 2), first, current))
+        assertEquals(first, coerceWeek(LocalDate.of(2026, 10, 12), first, current))
+        assertEquals(current, coerceWeek(LocalDate.of(2026, 12, 7), first, current))
+    }
+
+    @Test
+    fun `coerce week survives a creation date in the future`() {
+        val current = LocalDate.of(2026, 11, 9)
+        val future = LocalDate.of(2026, 12, 7)
+        assertEquals(current, coerceWeek(current, future, current))
+        assertEquals(current, coerceWeek(future, future, current))
+    }
+
+    @Test
     fun `time is padded for the reminder row`() {
         assertEquals("07:05", formatTime(7, 5))
         assertEquals("20:00", formatTime(20, 0))

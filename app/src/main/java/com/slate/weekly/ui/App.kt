@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.slate.weekly.BuildConfig
 import com.slate.weekly.data.ThemeMode
 import com.slate.weekly.ui.theme.SlateTheme
+import com.slate.weekly.util.coerceWeek
 import com.slate.weekly.util.startOfWeek
 import java.time.LocalDate
 
@@ -49,6 +50,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
         mutableStateOf<Screen>(Screen.Home)
     }
     var addOpen by rememberSaveable { mutableStateOf(false) }
+    var welcomeDismissed by rememberSaveable { mutableStateOf(false) }
     var weekStart by rememberSaveable(stateSaver = LocalDateSaver) {
         mutableStateOf(state.today.startOfWeek())
     }
@@ -91,14 +93,10 @@ fun SlateRoot(viewModel: SlateViewModel) {
     LaunchedEffect(state.loaded, state.habits, state.today) {
         if (!state.loaded) return@LaunchedEffect
         val thisWeek = state.today.startOfWeek()
-        val earliestWeek = state.habits
+        val firstWeek = state.habits
             .minOfOrNull { LocalDate.ofEpochDay(it.createdDay).startOfWeek() }
-        weekStart = when {
-            earliestWeek == null -> thisWeek
-            weekStart < earliestWeek -> earliestWeek
-            weekStart > thisWeek -> thisWeek
-            else -> weekStart
-        }
+            ?: thisWeek
+        weekStart = coerceWeek(weekStart, firstWeek, thisWeek)
     }
 
     BackHandler(enabled = screen != Screen.Home && !addOpen) {
@@ -130,8 +128,17 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         weekStart = weekStart,
                         today = state.today,
                         onShiftWeek = { delta ->
-                            val next = weekStart.plusWeeks(delta)
-                            if (next <= state.today.startOfWeek()) weekStart = next
+                            val thisWeek = state.today.startOfWeek()
+                            val firstWeek = state.habits
+                                .minOfOrNull {
+                                    LocalDate.ofEpochDay(it.createdDay).startOfWeek()
+                                }
+                                ?: thisWeek
+                            weekStart = coerceWeek(
+                                weekStart.plusWeeks(delta),
+                                firstWeek,
+                                thisWeek,
+                            )
                         },
                         onThisWeek = { weekStart = state.today.startOfWeek() },
                         onToggle = viewModel::toggle,
@@ -190,6 +197,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
                                 permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
                         },
+                        onPreviewReminder = viewModel::previewReminder,
                         onOpenNotificationSettings = {
                             openNotificationSettings(context)
                         },
@@ -223,6 +231,23 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         weekStart = state.today.startOfWeek()
                         screen = Screen.Home
                         addOpen = false
+                    },
+                )
+            }
+
+            val showWelcome = state.loaded &&
+                !state.welcomeSeen &&
+                !welcomeDismissed
+            AnimatedVisibility(
+                visible = showWelcome,
+                modifier = Modifier.fillMaxSize(),
+                enter = fadeIn(tween(420)),
+                exit = fadeOut(tween(280)),
+            ) {
+                WelcomeScreen(
+                    onBegin = {
+                        welcomeDismissed = true
+                        viewModel.markWelcomeSeen()
                     },
                 )
             }
