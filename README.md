@@ -5,7 +5,8 @@ nothing else.
 
 ## what it does
 
-- weekly grid: one row per habit, one circle per day, monday to sunday
+- weekly grid: one row per habit, one softened square per day, monday to sunday
+- a quiet trail of the last 53 weeks on every habit card
 - per-day check-ins against a weekly target (1–7 times a week)
 - step through past weeks and mark missed days
 - habit detail: streak, target, past weeks, rename, delete
@@ -17,21 +18,25 @@ nothing else.
 
 ## design
 
-- palette: paper `#f7f7f6`, ink `#0d0d0e`, night `#0a0a0b`
+- palette: paper `#f3f3f0`, ink `#0b0b0c`, night `#09090a`,
+  dark surfaces `#17171a` with `#2b2b30` hairlines, secondary text `#a6a6aa`
 - font: inter, bundled in the app
 - no uppercase labels, no gradients, no shadows
 - lowercase copy in english only
-- quiet motion only: week changes, day fills, the back-to-week reveal, theme pills
+- rounded-square days, one-canvas heatmaps, hairline cards
+- a floating bottom dock with habits, year and settings
+- quiet motion only: week changes, day fills, the back-to-week reveal, dock pills
   and screen fades
 - tabular numerals, 48dp touch targets, english dates on every phone
 
 ## architecture
 
-- `data`: the habit model, pure `HabitRules`, and one `SlateStore` flow over datastore
+- `data`: the habit model, pure `HabitRules`, and separate habit and settings
+  flows over datastore; json decoding runs off the main thread
 - `domain`: pure week progress, streak, year count and heatmap grid functions
 - `reminder`: one-time work that reschedules itself after every run
 - `ui`: one `SlateViewModel` owns state and actions, screens stay stateless,
-  navigation and the selected week survive rotation
+  navigation, the selected tab and the selected week survive rotation
 - backend behavior is covered by plain unit tests: dates, habit rules, progress
   and reminder timing
 

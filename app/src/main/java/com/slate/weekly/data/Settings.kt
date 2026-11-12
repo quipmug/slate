@@ -1,5 +1,7 @@
 package com.slate.weekly.data
 
+import androidx.compose.runtime.Immutable
+
 enum class ThemeMode(val key: String) {
     Light("light"),
     Dark("dark"),
@@ -12,6 +14,7 @@ enum class ThemeMode(val key: String) {
     }
 }
 
+@Immutable
 data class SlateSettings(
     val theme: ThemeMode = ThemeMode.Auto,
     val reminderOn: Boolean = false,

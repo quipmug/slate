@@ -76,7 +76,7 @@ fun AddHabitSheet(
     ModalBottomSheet(
         onDismissRequest = { if (!submitting) onDismiss() },
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = Color.Black.copy(alpha = 0.35f),
         dragHandle = {

@@ -318,7 +318,7 @@ fun HabitScreen(
 
         AlertDialog(
             onDismissRequest = { renaming = false },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurface,
             title = {
@@ -372,7 +372,7 @@ fun HabitScreen(
     if (deleting) {
         AlertDialog(
             onDismissRequest = { deleting = false },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {

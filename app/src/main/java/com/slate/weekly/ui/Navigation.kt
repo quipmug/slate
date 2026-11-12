@@ -11,6 +11,21 @@ internal sealed interface Screen {
     data object Settings : Screen
 }
 
+internal enum class MainTab { Habits, Year, Settings }
+
+internal fun MainTab.screen(): Screen = when (this) {
+    MainTab.Habits -> Screen.Home
+    MainTab.Year -> Screen.Year
+    MainTab.Settings -> Screen.Settings
+}
+
+internal fun Screen.tab(): MainTab? = when (this) {
+    Screen.Home -> MainTab.Habits
+    Screen.Year -> MainTab.Year
+    Screen.Settings -> MainTab.Settings
+    is Screen.Detail -> null
+}
+
 internal val ScreenSaver = listSaver<Screen, Any>(
     save = { screen ->
         when (screen) {

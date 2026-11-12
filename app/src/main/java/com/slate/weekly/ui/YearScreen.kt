@@ -1,7 +1,7 @@
 package com.slate.weekly.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -11,23 +11,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,10 +39,7 @@ import com.slate.weekly.domain.weeksOfYear
 import com.slate.weekly.ui.components.EmptyState
 import com.slate.weekly.ui.components.SectionLabel
 import com.slate.weekly.ui.components.SlateCard
-import com.slate.weekly.ui.components.SlateTopBar
 import com.slate.weekly.util.monthName
-import com.slate.weekly.util.startOfWeek
-import com.slate.weekly.util.weekDays
 import java.time.LocalDate
 import java.time.Month
 
@@ -52,25 +47,21 @@ import java.time.Month
 fun YearScreen(
     habits: List<Habit>,
     today: LocalDate,
-    onBack: () -> Unit,
     onAdd: () -> Unit,
 ) {
     val year = today.year
     val checkedDays = remember(habits, today) { checkedDaysThisYear(habits, today) }
     val weeks = remember(year) { weeksOfYear(year) }
     val kept = remember(habits, today) { daysKeptThisYear(habits, today) }
+    val firstDay = remember(habits) { habits.minOfOrNull { it.createdDay } ?: Long.MAX_VALUE }
 
     Column(
         Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .navigationBarsPadding()
             .padding(horizontal = 20.dp),
     ) {
-        Spacer(Modifier.height(4.dp))
-        SlateTopBar(onBack = onBack)
-
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.your_year),
             style = MaterialTheme.typography.headlineLarge,
@@ -92,7 +83,7 @@ fun YearScreen(
                 onAction = onAdd,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 64.dp),
+                    .padding(bottom = 96.dp),
             )
         } else {
             Spacer(Modifier.height(20.dp))
@@ -100,7 +91,7 @@ fun YearScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(bottom = 32.dp),
+                contentPadding = PaddingValues(bottom = 132.dp),
             ) {
                 item {
                     SlateCard(contentPadding = PaddingValues(14.dp)) {
@@ -111,6 +102,7 @@ fun YearScreen(
                             checks = checkedDays,
                             today = today,
                             year = year,
+                            firstDay = firstDay,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -165,17 +157,22 @@ private fun YearHeatmap(
     checks: Set<Long>,
     today: LocalDate,
     year: Int,
+    firstDay: Long,
     modifier: Modifier = Modifier,
 ) {
+    val doneColor = MaterialTheme.colorScheme.onSurface
+    val restColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+
     BoxWithConstraints(modifier) {
         val gap = 2.dp
         val cell = ((maxWidth - gap * (weeks.size - 1).toFloat()) / weeks.size.toFloat())
             .coerceIn(2.dp, 7.dp)
         val gridWidth = cell * weeks.size.toFloat() + gap * (weeks.size - 1).toFloat()
+        val gridHeight = cell * 7f + gap * 6f
         val step = cell + gap
         val gridStart = weeks.first()
         val monthColumns = remember(gridStart, step) {
-            Month.values().map { month ->
+            Month.entries.map { month ->
                 val first = LocalDate.of(gridStart.year, month, 1)
                 val column = ((first.toEpochDay() - gridStart.toEpochDay()) / 7).toInt()
                 month to (step * column.toFloat())
@@ -200,25 +197,31 @@ private fun YearHeatmap(
                 }
             }
             Spacer(Modifier.height(5.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                weeks.forEach { monday ->
-                    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-                        weekDays(monday).forEach { day ->
-                            val inYear = day.year == year
-                            val done = day.toEpochDay() in checks
-                            val fill = when {
-                                !inYear -> Color.Transparent
-                                done -> MaterialTheme.colorScheme.onSurface
-                                day > today -> Color.Transparent
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
-                            }
-                            Box(
-                                Modifier
-                                    .size(cell)
-                                    .clip(RoundedCornerShape(1.5.dp))
-                                    .background(fill),
-                            )
-                        }
+            Canvas(
+                Modifier
+                    .width(gridWidth)
+                    .height(gridHeight),
+            ) {
+                val gapPx = gap.toPx()
+                val stepPx = cell.toPx() + gapPx
+                val cellPx = cell.toPx()
+                val radius = CornerRadius(cellPx * 0.3f)
+                val firstEpoch = gridStart.toEpochDay()
+                val todayEpoch = today.toEpochDay()
+                val yearStart = LocalDate.of(year, 1, 1).toEpochDay()
+                val yearEnd = LocalDate.of(year, 12, 31).toEpochDay()
+
+                for (column in weeks.indices) {
+                    for (row in 0..6) {
+                        val epoch = firstEpoch + column * 7L + row
+                        if (epoch < yearStart || epoch > yearEnd) continue
+                        if (epoch < firstDay || epoch > todayEpoch) continue
+                        drawRoundRect(
+                            color = if (epoch in checks) doneColor else restColor,
+                            topLeft = Offset(column * stepPx, row * stepPx),
+                            size = Size(cellPx, cellPx),
+                            cornerRadius = radius,
+                        )
                     }
                 }
             }

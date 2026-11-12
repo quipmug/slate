@@ -1,6 +1,7 @@
 package com.slate.weekly.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -10,8 +11,12 @@ import androidx.datastore.preferences.preferencesDataStore
 import java.io.IOException
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -33,21 +38,26 @@ class SlateStore(context: Context) {
     private val reminderHourKey = intPreferencesKey("reminder_hour")
     private val reminderMinuteKey = intPreferencesKey("reminder_minute")
 
-    val data: Flow<SlateData> = appContext.slateData.data
+    val settings: Flow<SlateSettings> = appContext.slateData.data
         .catch { error ->
             if (error is IOException) emit(emptyPreferences()) else throw error
         }
-        .map { prefs ->
-            SlateData(
-                habits = decodeHabits(prefs[habitsKey]),
-                settings = SlateSettings(
-                    theme = ThemeMode.fromKey(prefs[themeKey]),
-                    reminderOn = prefs[reminderOnKey] ?: false,
-                    reminderHour = (prefs[reminderHourKey] ?: 20).coerceIn(0, 23),
-                    reminderMinute = (prefs[reminderMinuteKey] ?: 0).coerceIn(0, 59),
-                ),
-            )
-        }
+        .map(::readSettings)
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+
+    val data: Flow<SlateData> = combine(
+        appContext.slateData.data
+            .catch { error ->
+                if (error is IOException) emit(emptyPreferences()) else throw error
+            }
+            .map { prefs -> prefs[habitsKey] }
+            .distinctUntilChanged()
+            .map(::decodeHabits),
+        settings,
+    ) { habits, settings ->
+        SlateData(habits = habits, settings = settings)
+    }.flowOn(Dispatchers.Default)
 
     suspend fun add(name: String, target: Int): Boolean {
         val clean = HabitRules.cleanName(name)
@@ -116,4 +126,11 @@ class SlateStore(context: Context) {
             .getOrDefault(emptyList())
         return HabitRules.normalize(parsed)
     }
+
+    private fun readSettings(prefs: Preferences): SlateSettings = SlateSettings(
+        theme = ThemeMode.fromKey(prefs[themeKey]),
+        reminderOn = prefs[reminderOnKey] ?: false,
+        reminderHour = (prefs[reminderHourKey] ?: 20).coerceIn(0, 23),
+        reminderMinute = (prefs[reminderMinuteKey] ?: 0).coerceIn(0, 59),
+    )
 }

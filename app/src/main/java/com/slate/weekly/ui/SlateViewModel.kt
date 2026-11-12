@@ -61,15 +61,15 @@ class SlateViewModel(
             }
         }
         viewModelScope.launch {
-            store.data
-                .map { it.settings }
+            store.settings
+                .map { Triple(it.reminderOn, it.reminderHour, it.reminderMinute) }
                 .distinctUntilChanged()
-                .collect { settings ->
-                    if (settings.reminderOn) {
+                .collect { (enabled, hour, minute) ->
+                    if (enabled) {
                         Reminders.schedule(
                             context = appContext,
-                            hour = settings.reminderHour,
-                            minute = settings.reminderMinute,
+                            hour = hour,
+                            minute = minute,
                         )
                     } else {
                         Reminders.cancel(appContext)

@@ -6,14 +6,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,10 +18,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
@@ -39,17 +34,18 @@ import androidx.compose.ui.unit.dp
 import com.slate.weekly.R
 import com.slate.weekly.data.Habit
 import com.slate.weekly.domain.doneInWeek
-import com.slate.weekly.ui.components.AddPill
 import com.slate.weekly.ui.components.ChevronButton
 import com.slate.weekly.ui.components.ChevronDirection
 import com.slate.weekly.ui.components.EmptyState
+import com.slate.weekly.ui.components.PlusAction
 import com.slate.weekly.ui.components.SlateCard
-import com.slate.weekly.ui.components.SmallAction
 import com.slate.weekly.ui.components.TextAction
+import com.slate.weekly.ui.components.TrailGrid
 import com.slate.weekly.ui.components.WeekStrip
 import com.slate.weekly.util.startOfWeek
 import com.slate.weekly.util.weekDays
 import com.slate.weekly.util.weekRangeLabel
+import com.slate.weekly.util.weeksEndingAt
 import java.time.LocalDate
 
 @Composable
@@ -61,11 +57,10 @@ fun HomeScreen(
     onThisWeek: () -> Unit,
     onToggle: (String, LocalDate) -> Unit,
     onOpen: (String) -> Unit,
-    onYear: () -> Unit,
-    onSettings: () -> Unit,
     onAdd: () -> Unit,
 ) {
     val week = remember(weekStart) { weekDays(weekStart) }
+    val trail = remember(today) { weeksEndingAt(today.startOfWeek(), 53) }
     val isThisWeek = weekStart == today.startOfWeek()
     val earliestWeek = remember(habits) {
         habits.minOfOrNull { LocalDate.ofEpochDay(it.createdDay).startOfWeek() }
@@ -77,168 +72,147 @@ fun HomeScreen(
     val canGoBack = earliestWeek != null && weekStart > earliestWeek
     val canGoForward = earliestWeek != null && !isThisWeek
 
-    Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp),
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp),
+    ) {
+        Spacer(Modifier.height(4.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Spacer(Modifier.height(4.dp))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SmallAction(stringResource(R.string.year), onYear)
-                    SmallAction(stringResource(R.string.settings), onSettings)
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            PlusAction(onClick = onAdd)
+        }
+
+        Spacer(Modifier.height(2.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ChevronButton(
+                direction = ChevronDirection.Left,
+                description = stringResource(R.string.previous_week),
+                enabled = canGoBack,
+                color = if (canGoBack) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+                },
+                onClick = { onShiftWeek(-1) },
+            )
+            AnimatedContent(
+                targetState = weekStart,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 4.dp),
+                transitionSpec = {
+                    val forward = targetState > initialState
+                    (fadeIn(tween(180)) + slideInHorizontally(tween(260)) {
+                        if (forward) it / 5 else -it / 5
+                    }) togetherWith
+                        (fadeOut(tween(120)) + slideOutHorizontally(tween(180)) {
+                            if (forward) -it / 5 else it / 5
+                        })
+                },
+                label = "weekHeader",
+            ) { start ->
+                val shown = remember(habits, start) {
+                    val lastDay = start.plusDays(6).toEpochDay()
+                    habits.filter { it.createdDay <= lastDay }
                 }
-            }
+                val shownDone = shown.sumOf { doneInWeek(it, start) }
+                val shownTarget = shown.sumOf { it.target }
 
-            Spacer(Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ChevronButton(
-                    direction = ChevronDirection.Left,
-                    description = stringResource(R.string.previous_week),
-                    enabled = canGoBack,
-                    color = if (canGoBack) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-                    },
-                    onClick = { onShiftWeek(-1) },
-                )
-                AnimatedContent(
-                    targetState = weekStart,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 4.dp),
-                    transitionSpec = {
-                        val forward = targetState > initialState
-                        (fadeIn(tween(180)) + slideInHorizontally(tween(260)) {
-                            if (forward) it / 5 else -it / 5
-                        }) togetherWith
-                            (fadeOut(tween(120)) + slideOutHorizontally(tween(180)) {
-                                if (forward) -it / 5 else it / 5
-                            })
-                    },
-                    label = "weekHeader",
-                ) { start ->
-                    val shown = remember(habits, start) {
-                        val lastDay = start.plusDays(6).toEpochDay()
-                        habits.filter { it.createdDay <= lastDay }
-                    }
-                    val shownDone = shown.sumOf { doneInWeek(it, start) }
-                    val shownTarget = shown.sumOf { it.target }
-
-                    Column {
-                        Text(
-                            text = weekRangeLabel(start),
-                            style = MaterialTheme.typography.headlineLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (shown.isNotEmpty()) {
-                            Spacer(Modifier.height(3.dp))
-                            Text(
-                                text = if (shownDone >= shownTarget) {
-                                    stringResource(R.string.week_complete)
-                                } else {
-                                    stringResource(R.string.week_progress, shownDone, shownTarget)
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else if (habits.isNotEmpty()) {
-                            Spacer(Modifier.height(3.dp))
-                            Text(
-                                text = stringResource(R.string.nothing_this_week),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-                ChevronButton(
-                    direction = ChevronDirection.Right,
-                    description = stringResource(R.string.next_week),
-                    enabled = canGoForward,
-                    color = if (canGoForward) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-                    },
-                    onClick = { onShiftWeek(1) },
-                )
-            }
-
-            AnimatedVisibility(
-                visible = !isThisWeek,
-                enter = fadeIn(tween(160)) + expandVertically(tween(220)),
-                exit = fadeOut(tween(100)) + shrinkVertically(tween(160)),
-            ) {
                 Column {
-                    Spacer(Modifier.height(2.dp))
-                    TextAction(
-                        text = stringResource(R.string.back_to_this_week),
-                        onClick = onThisWeek,
+                    Text(
+                        text = weekRangeLabel(start),
+                        style = MaterialTheme.typography.headlineLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            if (habits.isEmpty()) {
-                EmptyState(
-                    title = stringResource(R.string.nothing_yet),
-                    subtitle = stringResource(R.string.nothing_yet_sub),
-                    action = stringResource(R.string.add),
-                    onAction = onAdd,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 64.dp),
-                )
-            } else if (visible.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 112.dp),
-                ) {
-                    items(visible, key = { it.id }) { habit ->
-                        HabitCard(
-                            habit = habit,
-                            week = week,
-                            today = today,
-                            onToggle = onToggle,
-                            onOpen = onOpen,
-                            modifier = Modifier.animateItem(),
+                    if (shown.isNotEmpty()) {
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = if (shownDone >= shownTarget) {
+                                stringResource(R.string.week_complete)
+                            } else {
+                                stringResource(R.string.week_progress, shownDone, shownTarget)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else if (habits.isNotEmpty()) {
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = stringResource(R.string.nothing_this_week),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
+            ChevronButton(
+                direction = ChevronDirection.Right,
+                description = stringResource(R.string.next_week),
+                enabled = canGoForward,
+                color = if (canGoForward) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+                },
+                onClick = { onShiftWeek(1) },
+            )
         }
 
         AnimatedVisibility(
-            visible = habits.isNotEmpty(),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 18.dp),
-            enter = fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.92f),
-            exit = fadeOut(tween(120)) + scaleOut(tween(140), targetScale = 0.92f),
+            visible = !isThisWeek,
+            enter = fadeIn(tween(160)) + expandVertically(tween(220)),
+            exit = fadeOut(tween(100)) + shrinkVertically(tween(160)),
         ) {
-            AddPill(
-                text = stringResource(R.string.add),
-                onClick = onAdd,
-                plus = true,
-                modifier = Modifier.width(158.dp),
+            Column {
+                Spacer(Modifier.height(2.dp))
+                TextAction(
+                    text = stringResource(R.string.back_to_this_week),
+                    onClick = onThisWeek,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        if (habits.isEmpty()) {
+            EmptyState(
+                title = stringResource(R.string.nothing_yet),
+                subtitle = stringResource(R.string.nothing_yet_sub),
+                action = stringResource(R.string.add),
+                onAction = onAdd,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 96.dp),
             )
+        } else if (visible.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 132.dp),
+            ) {
+                items(visible, key = { it.id }) { habit ->
+                    HabitCard(
+                        habit = habit,
+                        week = week,
+                        trail = trail,
+                        today = today,
+                        onToggle = onToggle,
+                        onOpen = onOpen,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+            }
         }
     }
 }
@@ -247,6 +221,7 @@ fun HomeScreen(
 private fun HabitCard(
     habit: Habit,
     week: List<LocalDate>,
+    trail: List<LocalDate>,
     today: LocalDate,
     onToggle: (String, LocalDate) -> Unit,
     onOpen: (String) -> Unit,
@@ -285,6 +260,13 @@ private fun HabitCard(
             today = today,
             firstDay = habit.createdDay,
             onToggle = { onToggle(habit.id, it) },
+        )
+        Spacer(Modifier.height(10.dp))
+        TrailGrid(
+            weeks = trail,
+            checks = habit.checks,
+            today = today,
+            firstDay = habit.createdDay,
         )
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,7 +44,6 @@ import com.slate.weekly.data.SlateSettings
 import com.slate.weekly.data.ThemeMode
 import com.slate.weekly.ui.components.SectionLabel
 import com.slate.weekly.ui.components.SlateCard
-import com.slate.weekly.ui.components.SlateTopBar
 import com.slate.weekly.ui.components.Stepper
 import com.slate.weekly.ui.components.TextAction
 import com.slate.weekly.ui.components.Toggle
@@ -56,7 +54,6 @@ fun SettingsScreen(
     settings: SlateSettings,
     versionName: String,
     notificationsBlocked: Boolean,
-    onBack: () -> Unit,
     onTheme: (ThemeMode) -> Unit,
     onReminder: (Boolean, Int, Int) -> Unit,
     onOpenNotificationSettings: () -> Unit,
@@ -69,13 +66,9 @@ fun SettingsScreen(
         Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .navigationBarsPadding()
             .padding(horizontal = 20.dp),
     ) {
-        Spacer(Modifier.height(4.dp))
-        SlateTopBar(onBack = onBack)
-
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.settings),
             style = MaterialTheme.typography.headlineLarge,
@@ -87,7 +80,7 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(bottom = 132.dp),
         ) {
             item {
                 SlateCard {
@@ -231,7 +224,7 @@ fun SettingsScreen(
     if (resetOpen) {
         AlertDialog(
             onDismissRequest = { resetOpen = false },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {
@@ -341,7 +334,7 @@ private fun TimeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         titleContentColor = MaterialTheme.colorScheme.onSurface,
         textContentColor = MaterialTheme.colorScheme.onSurface,
         title = {

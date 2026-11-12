@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -134,8 +136,6 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         onThisWeek = { weekStart = state.today.startOfWeek() },
                         onToggle = viewModel::toggle,
                         onOpen = { id -> screen = Screen.Detail(id) },
-                        onYear = { screen = Screen.Year },
-                        onSettings = { screen = Screen.Settings },
                         onAdd = { addOpen = true },
                     )
 
@@ -170,7 +170,6 @@ fun SlateRoot(viewModel: SlateViewModel) {
                     Screen.Year -> YearScreen(
                         habits = state.habits,
                         today = state.today,
-                        onBack = { screen = Screen.Home },
                         onAdd = {
                             screen = Screen.Home
                             addOpen = true
@@ -181,7 +180,6 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         settings = state.settings,
                         versionName = BuildConfig.VERSION_NAME,
                         notificationsBlocked = !notificationsAllowed,
-                        onBack = { screen = Screen.Home },
                         onTheme = viewModel::setTheme,
                         onReminder = { enabled, hour, minute ->
                             viewModel.setReminder(enabled, hour, minute)
@@ -202,6 +200,19 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         },
                     )
                 }
+            }
+
+            val tab = screen.tab()
+            AnimatedVisibility(
+                visible = tab != null,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(tween(160)) + slideInVertically(tween(240)) { it },
+                exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it },
+            ) {
+                SlateBottomBar(
+                    selected = tab ?: MainTab.Habits,
+                    onSelect = { screen = it.screen() },
+                )
             }
 
             if (addOpen) {

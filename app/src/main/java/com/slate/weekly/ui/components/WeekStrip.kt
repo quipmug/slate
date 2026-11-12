@@ -2,7 +2,6 @@ package com.slate.weekly.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -18,7 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,6 +50,7 @@ fun WeekStrip(
     cell: Dp = 30.dp,
 ) {
     val haptics = LocalHapticFeedback.current
+    val dayShape = RoundedCornerShape(cell * 0.3f)
 
     Row(modifier.fillMaxWidth()) {
         days.forEach { day ->
@@ -66,21 +66,13 @@ fun WeekStrip(
                 enabled -> MaterialTheme.colorScheme.onSurfaceVariant
                 else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             }
-            val borderColor by animateColorAsState(
-                targetValue = when {
-                    !exists || done -> Color.Transparent
-                    isToday -> MaterialTheme.colorScheme.onSurface
-                    !enabled -> MaterialTheme.colorScheme.outlineVariant
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                },
-                animationSpec = tween(160),
-                label = "dayBorder",
-            )
-            val borderWidth by animateDpAsState(
-                targetValue = if (isToday) 1.5.dp else 1.dp,
-                animationSpec = tween(160),
-                label = "dayBorderWidth",
-            )
+            val borderColor = when {
+                !exists || done -> Color.Transparent
+                isToday -> MaterialTheme.colorScheme.onSurface
+                !enabled -> MaterialTheme.colorScheme.outlineVariant
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            }
+            val borderWidth = if (isToday) 1.5.dp else 1.dp
             val fillColor by animateColorAsState(
                 targetValue = if (done) {
                     MaterialTheme.colorScheme.onSurface
@@ -91,10 +83,10 @@ fun WeekStrip(
                 label = "dayFill",
             )
             val fillScale by animateFloatAsState(
-                targetValue = if (done) 1f else 0.55f,
+                targetValue = if (done) 1f else 0.72f,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium,
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
                 ),
                 label = "dayScale",
             )
@@ -134,8 +126,8 @@ fun WeekStrip(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape)
-                            .border(borderWidth, borderColor, CircleShape),
+                            .clip(dayShape)
+                            .border(borderWidth, borderColor, dayShape),
                     )
                     Box(
                         modifier = Modifier
@@ -144,7 +136,7 @@ fun WeekStrip(
                                 scaleX = fillScale
                                 scaleY = fillScale
                             }
-                            .clip(CircleShape)
+                            .clip(dayShape)
                             .background(fillColor),
                     )
                 }

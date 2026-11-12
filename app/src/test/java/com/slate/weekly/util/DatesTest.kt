@@ -37,6 +37,20 @@ class DatesTest {
     }
 
     @Test
+    fun `trail weeks end on the given monday`() {
+        val weeks = weeksEndingAt(LocalDate.of(2026, 11, 9), 3)
+        assertEquals(
+            listOf(
+                LocalDate.of(2026, 10, 26),
+                LocalDate.of(2026, 11, 2),
+                LocalDate.of(2026, 11, 9),
+            ),
+            weeks,
+        )
+        assertEquals(emptyList<LocalDate>(), weeksEndingAt(LocalDate.of(2026, 11, 9), 0))
+    }
+
+    @Test
     fun `time is padded for the reminder row`() {
         assertEquals("07:05", formatTime(7, 5))
         assertEquals("20:00", formatTime(20, 0))

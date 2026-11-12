@@ -1,7 +1,9 @@
 package com.slate.weekly.data
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Serializable
 data class Habit(
     val id: String,

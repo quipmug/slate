@@ -11,6 +11,11 @@ fun LocalDate.startOfWeek(): LocalDate = minusDays((dayOfWeek.value - 1).toLong(
 
 fun weekDays(monday: LocalDate): List<LocalDate> = (0L..6L).map { monday.plusDays(it) }
 
+fun weeksEndingAt(monday: LocalDate, count: Int): List<LocalDate> {
+    if (count <= 0) return emptyList()
+    return List(count) { index -> monday.minusWeeks((count - 1 - index).toLong()) }
+}
+
 fun dayLabel(date: LocalDate): String =
     date.dayOfWeek.getDisplayName(TextStyle.SHORT, SlateLocale).lowercase(SlateLocale).take(2)
 
