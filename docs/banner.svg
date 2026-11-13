@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" fill="none" role="img" aria-label="slate — small marks, kept weekly.">
+  <rect width="1600" height="560" fill="#F3F3F0"/>
+  <rect x="0.5" y="0.5" width="1599" height="559" stroke="#DEDED8"/>
+  <g>
+    <rect x="1080" y="111" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1130" y="111" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1180" y="111" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1230" y="111" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1280" y="111" width="38" height="38" rx="11" fill="#B7B7B1"/>
+    <rect x="1330" y="111" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1380" y="111" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1080" y="161" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1130" y="161" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1180" y="161" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1230" y="161" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1280" y="161" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1330" y="161" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1380" y="161" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1080" y="211" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1130" y="211" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1180" y="211" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1230" y="211" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1280" y="211" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1330" y="211" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1380" y="211" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1080" y="261" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1130" y="261" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1180" y="261" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1230" y="261" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1280" y="261" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1330" y="261" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1380" y="261" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1080" y="311" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1130" y="311" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1180" y="311" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1230" y="311" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1280" y="311" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1330" y="311" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1380" y="311" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1080" y="361" width="38" height="38" rx="11" fill="#B7B7B1"/>
+    <rect x="1130" y="361" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1180" y="361" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1230" y="361" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1280" y="361" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1330" y="361" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1380" y="361" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1080" y="411" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1130" y="411" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1180" y="411" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1230" y="411" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1280" y="411" width="38" height="38" rx="11" fill="#DDDDD7"/>
+    <rect x="1330" y="411" width="38" height="38" rx="11" fill="#0B0B0C"/>
+    <rect x="1380" y="411" width="38" height="38" rx="11" fill="#B7B7B1"/>
+  </g>
+  <text x="112" y="180" font-family="Inter, ui-sans-serif, -apple-system, Segoe UI, sans-serif" font-size="20" fill="#8C8C90" letter-spacing="1">a quiet habit tracker</text>
+  <text x="108" y="300" font-family="Inter, ui-sans-serif, -apple-system, Segoe UI, sans-serif" font-size="140" font-weight="600" letter-spacing="-7" fill="#0B0B0C">slate</text>
+  <text x="114" y="356" font-family="Inter, ui-sans-serif, -apple-system, Segoe UI, sans-serif" font-size="28" fill="#6E6E72" letter-spacing="-0.4">small marks, kept weekly.</text>
+  <line x1="114" y1="404" x2="500" y2="404" stroke="#D4D4CE"/>
+  <text x="114" y="444" font-family="Inter, ui-sans-serif, -apple-system, Segoe UI, sans-serif" font-size="16" fill="#8C8C90" letter-spacing="1.4">android · kotlin · compose · offline</text>
+  <text x="1486" y="520" text-anchor="end" font-family="Inter, ui-sans-serif, -apple-system, Segoe UI, sans-serif" font-size="16" fill="#A6A6AA">v0.5.1</text>
+</svg>
