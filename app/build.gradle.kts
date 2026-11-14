@@ -55,13 +55,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
 
-    testOptions {
-        unitTests.includeAndroidResources = true
-        unitTests.all {
-            useJUnitPlatform()
-        }
-    }
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 detekt {
