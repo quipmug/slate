@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class FocusAccessibilityService : AccessibilityService() {
@@ -29,10 +29,9 @@ class FocusAccessibilityService : AccessibilityService() {
         settingsJob?.cancel()
         val store = (application as SlateApp).store
         settingsJob = serviceScope.launch {
-            store.settings.collect { settings ->
-                focusUntil = settings.focusUntil
-                blockedPackages = settings.blockedPackages
-            }
+            val settings = store.settings.first()
+            focusUntil = settings.focusUntil
+            blockedPackages = settings.blockedPackages
         }
     }
 
@@ -42,9 +41,6 @@ class FocusAccessibilityService : AccessibilityService() {
         if (foreground == packageName) return
         if (!isFocusActive(focusUntil, System.currentTimeMillis())) return
         if (foreground !in blockedPackages) return
-        // Re-check the live protected set instead of trusting the stored list:
-        // a launcher or settings package must never be blocked, even if the
-        // list was written before it was installed or edited externally.
         if (foreground in protectedPackages(applicationContext)) return
         performGlobalAction(GLOBAL_ACTION_HOME)
     }

@@ -12,29 +12,33 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.slate.weekly.domain.focusEnd
 import com.slate.weekly.domain.isFocusActive
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import java.time.LocalDate
 import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
-private val Context.slateData by preferencesDataStore(name = "slate")
+@Singleton
+class SlateStore @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+    private val habitDao: HabitDao,
+) {
 
-class SlateStore(context: Context) {
-
-    private val appContext = context.applicationContext
-    private val json = Json {
+    private val json = kotlinx.serialization.json.Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
+    private const val CURRENT_SCHEMA_VERSION = 1
 
     private val habitsKey = stringPreferencesKey("habits")
     private val themeKey = stringPreferencesKey("theme")
@@ -44,6 +48,9 @@ class SlateStore(context: Context) {
     private val welcomeSeenKey = booleanPreferencesKey("welcome_seen")
     private val focusUntilKey = longPreferencesKey("focus_until")
     private val blockedPackagesKey = stringSetPreferencesKey("blocked_packages")
+    private val schemaVersionKey = intPreferencesKey("schema_version")
+
+    private val Context.slateData by preferencesDataStore(name = "slate")
 
     private val preferences: Flow<Preferences> = appContext.slateData.data
         .catch { error ->
@@ -60,16 +67,76 @@ class SlateStore(context: Context) {
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
 
-    val data: Flow<SlateData> = combine(
-        preferences
-            .map { prefs -> prefs[habitsKey] }
-            .distinctUntilChanged()
-            .map(::decodeHabits),
-        settings,
-        welcomeSeen,
-    ) { habits, settings, seen ->
-        SlateData(habits = habits, settings = settings, welcomeSeen = seen)
+    private val schemaVersion: Flow<Int> = preferences
+        .map { prefs -> prefs[schemaVersionKey] ?: 0 }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+
+    val data: Flow<SlateData> = flow {
+        migrateFromDataStoreIfNeeded()
+        combine(
+            habitDao.getAllHabitsWithChecks(),
+            settings,
+            welcomeSeen,
+            schemaVersion,
+        ) { habitWithChecksList, settings, seen, version ->
+            val validHabits = if (version != CURRENT_SCHEMA_VERSION) emptyList() else habitWithChecksList
+            val habits = validHabits.map { hwc ->
+                Habit(
+                    id = hwc.habit.id,
+                    name = hwc.habit.name,
+                    target = hwc.habit.target,
+                    createdDay = hwc.habit.createdDay,
+                    checks = hwc.checks.map { it.day }.toSet(),
+                )
+            }
+            SlateData(habits = habits, settings = settings, welcomeSeen = seen)
+        }.collect { emit(it) }
     }.flowOn(Dispatchers.Default)
+
+    private suspend fun migrateFromDataStoreIfNeeded() {
+        val currentVersion = appContext.slateData.data.first()
+            .map { prefs -> prefs[schemaVersionKey] ?: 0 }
+            .first()
+
+        if (currentVersion >= CURRENT_SCHEMA_VERSION) return
+
+        val rawHabits = appContext.slateData.data.first()
+            .map { prefs -> prefs[habitsKey] }
+            .first()
+
+        if (rawHabits.isNullOrBlank()) {
+            appContext.slateData.edit { prefs ->
+                prefs[schemaVersionKey] = CURRENT_SCHEMA_VERSION
+            }
+            return
+        }
+
+        val parsed = runCatching {
+            json.decodeFromString<List<LegacyHabit>>(rawHabits)
+        }.getOrDefault(emptyList())
+
+        val entities = parsed.map { legacy ->
+            HabitEntity(
+                id = legacy.id,
+                name = legacy.name,
+                target = legacy.target,
+                createdDay = legacy.createdDay,
+            )
+        }
+        val checks = parsed.flatMap { legacy ->
+            legacy.checks.map { day -> HabitCheck(legacy.id, day) }
+        }
+
+        habitDao.insertHabits(*entities.toTypedArray())
+        if (checks.isNotEmpty()) {
+            habitDao.insertChecks(*checks.toTypedArray())
+        }
+
+        appContext.slateData.edit { prefs ->
+            prefs[schemaVersionKey] = CURRENT_SCHEMA_VERSION
+        }
+    }
 
     suspend fun add(name: String, target: Int): Boolean {
         val clean = HabitRules.cleanName(name)
@@ -80,31 +147,33 @@ class SlateStore(context: Context) {
             target = HabitRules.cleanTarget(target),
             createdDay = LocalDate.now().toEpochDay(),
         )
-        mutateHabits { it + habit }
+        habitDao.upsertHabitWithChecks(habit.toEntity(), emptySet())
         return true
     }
 
     suspend fun toggle(habitId: String, day: Long) {
-        val today = LocalDate.now().toEpochDay()
-        mutateHabit(habitId) { habit -> HabitRules.toggled(habit, day, today) }
+        habitDao.toggleCheck(habitId, day)
     }
 
     suspend fun rename(habitId: String, name: String) {
         val clean = HabitRules.cleanName(name)
         if (clean.isEmpty()) return
-        mutateHabit(habitId) { it.copy(name = clean) }
+        val entity = habitDao.getHabitById(habitId) ?: return
+        habitDao.updateHabit(entity.copy(name = clean))
     }
 
     suspend fun setTarget(habitId: String, target: Int) {
-        mutateHabit(habitId) { it.copy(target = HabitRules.cleanTarget(target)) }
+        val entity = habitDao.getHabitById(habitId) ?: return
+        habitDao.updateHabit(entity.copy(target = HabitRules.cleanTarget(target)))
     }
 
     suspend fun delete(habitId: String) {
-        mutateHabits { habits -> habits.filterNot { it.id == habitId } }
+        val entity = habitDao.getHabitById(habitId) ?: return
+        habitDao.deleteHabit(entity)
     }
 
     suspend fun resetHabits() {
-        appContext.slateData.edit { prefs -> prefs.remove(habitsKey) }
+        habitDao.deleteAllHabits()
     }
 
     suspend fun markWelcomeSeen() {
@@ -153,26 +222,6 @@ class SlateStore(context: Context) {
         }
     }
 
-    private suspend fun mutateHabit(habitId: String, transform: (Habit) -> Habit) {
-        mutateHabits { habits ->
-            habits.map { habit -> if (habit.id == habitId) transform(habit) else habit }
-        }
-    }
-
-    private suspend fun mutateHabits(transform: (List<Habit>) -> List<Habit>) {
-        appContext.slateData.edit { prefs ->
-            val next = transform(decodeHabits(prefs[habitsKey]))
-            prefs[habitsKey] = json.encodeToString(HabitRules.normalize(next))
-        }
-    }
-
-    private fun decodeHabits(raw: String?): List<Habit> {
-        if (raw.isNullOrBlank()) return emptyList()
-        val parsed = runCatching { json.decodeFromString<List<Habit>>(raw) }
-            .getOrDefault(emptyList())
-        return HabitRules.normalize(parsed, today = LocalDate.now().toEpochDay())
-    }
-
     private fun readSettings(prefs: Preferences): SlateSettings = SlateSettings(
         theme = ThemeMode.fromKey(prefs[themeKey]),
         reminderOn = prefs[reminderOnKey] ?: false,
@@ -182,3 +231,12 @@ class SlateStore(context: Context) {
         blockedPackages = prefs[blockedPackagesKey] ?: emptySet(),
     )
 }
+
+// Legacy habit class for DataStore JSON migration
+private data class LegacyHabit(
+    val id: String,
+    val name: String,
+    val target: Int,
+    val createdDay: Long,
+    val checks: Set<Long> = emptySet(),
+)

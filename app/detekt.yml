@@ -1,0 +1,102 @@
+build:
+  maxIssues: 0
+  excludeOutputs:
+    - "build/"
+  excludeFiles:
+    - ".*/R\.kt"
+    - ".*/BuildConfig\.kt"
+    - ".*/generated/.*"
+  configs:
+    detekt-cli-config: detekt.yml
+
+rules:
+  emptyKotlinBlock:
+    active: false
+  forbiddenComment:
+    active: false
+  magicNumber:
+    active: false
+  tooManyFunctions:
+    active: false
+  tooManyLines:
+    active: false
+  longMethod:
+    active: false
+  longParameterList:
+    active: false
+  largeClass:
+    active: false
+  tooGenericException:
+    active: false
+  emptyFunctionBlock:
+    active: false
+  emptyClass:
+    active: false
+  dataClassContainsFunctions:
+    active: false
+  spelling:
+    active: false
+  oddSpacing:
+    active: false
+  emptyCatchBlock:
+    active: false
+  explicitCollectionElementAccessMethod:
+    active: false
+  canBeNonNullable:
+    active: false
+  unsafeCallOnNullableType:
+    active: false
+  unnecessarySafeCall:
+    active: false
+  redundantElseInWhen:
+    active: false
+  redundantSuspendModifier:
+    active: false
+  trailingWhitespace:
+    active: true
+  indentation:
+    active: true
+    size: 4
+    continueIndentation: 4
+  maxLineLength:
+    active: false
+  wildcardImport:
+    active: true
+  unusedImports:
+    active: true
+  unusedPrivateMember:
+    active: true
+  unusedPrivateProperty:
+    active: true
+
+complexity:
+  active: false
+
+comments:
+  active: false
+
+coroutines:
+  active: false
+
+empty-blocks:
+  active: false
+
+exceptions:
+  active: false
+
+naming:
+  active: false
+
+performance:
+  active: false
+
+potential-bugs:
+  active: false
+
+style:
+  active: false
+
+type-safety:
+  active: true
+
+<argValue key="maxLineLength">120</argValue>

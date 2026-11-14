@@ -28,19 +28,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavController
 import com.slate.weekly.R
 import com.slate.weekly.ui.components.DockGlyph
 import com.slate.weekly.ui.components.DockGlyph.Habits
 import com.slate.weekly.ui.components.DockGlyph.Settings
 import com.slate.weekly.ui.components.DockGlyph.Year
+import com.slate.weekly.ui.SlateRoutes
 
 @Composable
 internal fun SlateBottomBar(
-    selected: MainTab,
-    onSelect: (MainTab) -> Unit,
+    navController: NavController,
+    currentRoute: String,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(30.dp)
+    val tabs = listOf(
+        TabItem(SlateRoutes.Home, R.string.habits, Habits),
+        TabItem(SlateRoutes.Year, R.string.year, Year),
+        TabItem(SlateRoutes.Settings, R.string.settings, Settings),
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -55,12 +62,13 @@ internal fun SlateBottomBar(
             .selectableGroup(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MainTab.entries.forEach { tab ->
+        tabs.forEach { tab ->
             DockTab(
                 tab = tab,
-                selected = selected == tab,
-                onClick = { onSelect(tab) },
+                selected = currentRoute == tab.route,
+                onClick = { navController.navigate(tab.route) },
                 modifier = Modifier.weight(1f),
+                navController = navController,
             )
         }
     }
@@ -68,10 +76,11 @@ internal fun SlateBottomBar(
 
 @Composable
 private fun DockTab(
-    tab: MainTab,
+    tab: TabItem,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    navController: NavController,
 ) {
     val pill by animateColorAsState(
         targetValue = if (selected) {
@@ -91,8 +100,6 @@ private fun DockTab(
         animationSpec = tween(200),
         label = "dockContent",
     )
-    val label = stringResource(tab.labelRes)
-    val glyph = tab.glyph
 
     Box(
         modifier = modifier
@@ -114,13 +121,13 @@ private fun DockTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DockGlyph(
-                kind = glyph,
+                kind = tab.glyph,
                 color = content,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = label,
+                text = stringResource(tab.labelRes),
                 style = MaterialTheme.typography.labelMedium,
                 color = content,
                 maxLines = 1,
@@ -129,16 +136,8 @@ private fun DockTab(
     }
 }
 
-private val MainTab.glyph: DockGlyph
-    get() = when (this) {
-        MainTab.Habits -> Habits
-        MainTab.Year -> Year
-        MainTab.Settings -> Settings
-    }
-
-private val MainTab.labelRes: Int
-    get() = when (this) {
-        MainTab.Habits -> R.string.habits
-        MainTab.Year -> R.string.year
-        MainTab.Settings -> R.string.settings
-    }
+private data class TabItem(
+    val route: String,
+    val labelRes: Int,
+    val glyph: DockGlyph,
+)

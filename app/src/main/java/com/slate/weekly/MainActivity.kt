@@ -5,14 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.slate.weekly.ui.SlateRoot
-import com.slate.weekly.ui.SlateViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: SlateViewModel by viewModels {
-        SlateViewModel.factory((application as SlateApp).store)
-    }
+    private val viewModel: SlateViewModel by hiltViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

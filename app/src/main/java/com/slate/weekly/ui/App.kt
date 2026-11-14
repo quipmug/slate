@@ -5,14 +5,12 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -34,12 +32,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.currentBackStackEntryAsState
 import com.slate.weekly.BuildConfig
+import com.slate.weekly.R
+import com.slate.weekly.data.Habit
 import com.slate.weekly.data.ThemeMode
 import com.slate.weekly.focus.FocusAccess
 import com.slate.weekly.ui.theme.SlateTheme
 import com.slate.weekly.util.coerceWeek
 import com.slate.weekly.util.startOfWeek
+import com.slate.weekly.ui.SlateRoutes
 import java.time.LocalDate
 
 @Composable
@@ -48,9 +53,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var screen by rememberSaveable(stateSaver = ScreenSaver) {
-        mutableStateOf<Screen>(Screen.Home)
-    }
+    val navController = rememberNavController()
     var addOpen by rememberSaveable { mutableStateOf(false) }
     var welcomeDismissed by rememberSaveable { mutableStateOf(false) }
     var weekStart by rememberSaveable(stateSaver = LocalDateSaver) {
@@ -103,8 +106,12 @@ fun SlateRoot(viewModel: SlateViewModel) {
         weekStart = coerceWeek(weekStart, firstWeek, thisWeek)
     }
 
-    BackHandler(enabled = screen != Screen.Home && !addOpen) {
-        screen = screen.back()
+    BackHandler(enabled = navController.currentBackStackEntryCount > 1 || addOpen) {
+        if (addOpen) {
+            addOpen = false
+        } else {
+            navController.popBackStack()
+        }
     }
 
     SlateTheme(dark = dark) {
@@ -117,17 +124,12 @@ fun SlateRoot(viewModel: SlateViewModel) {
                 return@Box
             }
 
-            AnimatedContent(
-                targetState = screen,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    (fadeIn(tween(200)) + slideInVertically(tween(280)) { it / 28 }) togetherWith
-                        (fadeOut(tween(120)) + slideOutVertically(tween(200)) { -it / 28 })
-                },
-                label = "screen",
-            ) { target ->
-                when (target) {
-                    Screen.Home -> HomeScreen(
+            NavHost(
+                navController = navController,
+                startDestination = SlateRoutes.Home,
+            ) {
+                composable(SlateRoutes.Home) {
+                    HomeScreen(
                         habits = state.habits,
                         weekStart = weekStart,
                         today = state.today,
@@ -146,48 +148,49 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         },
                         onThisWeek = { weekStart = state.today.startOfWeek() },
                         onToggle = viewModel::toggle,
-                        onOpen = { id -> screen = Screen.Detail(id) },
+                        onOpen = { id -> navController.navigate("${SlateRoutes.Detail.replace("{habitId}", id)}") },
                         onAdd = { addOpen = true },
                     )
-
-                    is Screen.Detail -> {
-                        val habit = state.habits.firstOrNull { it.id == target.id }
-                        if (habit != null) {
-                            HabitScreen(
-                                habit = habit,
-                                today = state.today,
-                                initialWeek = weekStart,
-                                onBack = { screen = Screen.Home },
-                                onToggle = { day -> viewModel.toggle(habit.id, day) },
-                                onRename = { name -> viewModel.rename(habit.id, name) },
-                                onSetTarget = { targetValue ->
-                                    viewModel.setTarget(habit.id, targetValue)
-                                },
-                                onDelete = {
-                                    viewModel.delete(habit.id)
-                                    if (state.habits.size <= 1) {
-                                        weekStart = state.today.startOfWeek()
-                                    }
-                                    screen = Screen.Home
-                                },
-                            )
-                        } else {
-                            LaunchedEffect(target.id) {
-                                screen = Screen.Home
-                            }
+                }
+                composable(SlateRoutes.Detail) { backStackEntry ->
+                    val habitId = backStackEntry.arguments?.getString("habitId") ?: ""
+                    val habit = state.habits.firstOrNull { it.id == habitId }
+                    if (habit != null) {
+                        HabitScreen(
+                            habit = habit,
+                            today = state.today,
+                            initialWeek = weekStart,
+                            onBack = { navController.popBackStack() },
+                            onToggle = { day -> viewModel.toggle(habit.id, day) },
+                            onRename = { name -> viewModel.rename(habit.id, name) },
+                            onSetTarget = { targetValue ->
+                                viewModel.setTarget(habit.id, targetValue)
+                            },
+                            onDelete = {
+                                viewModel.delete(habit.id)
+                                if (state.habits.size <= 1) {
+                                    weekStart = state.today.startOfWeek()
+                                }
+                                navController.popBackStack()
+                            },
+                        )
+                    } else {
+                        LaunchedEffect(habitId) {
+                            navController.popBackStack()
                         }
                     }
-
-                    Screen.Year -> YearScreen(
+                }
+                composable(SlateRoutes.Year) {
+                    YearScreen(
                         habits = state.habits,
                         today = state.today,
                         onAdd = {
-                            screen = Screen.Home
                             addOpen = true
                         },
                     )
-
-                    Screen.Settings -> SettingsScreen(
+                }
+                composable(SlateRoutes.Settings) {
+                    SettingsScreen(
                         settings = state.settings,
                         versionName = BuildConfig.VERSION_NAME,
                         notificationsBlocked = !notificationsAllowed,
@@ -206,7 +209,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         onOpenNotificationSettings = {
                             openNotificationSettings(context)
                         },
-                        onOpenFocusApps = { screen = Screen.FocusApps },
+                        onOpenFocusApps = { navController.navigate(SlateRoutes.FocusApps) },
                         onStartFocus = viewModel::startFocus,
                         onOpenAccessibilitySettings = {
                             FocusAccess.openAccessibilitySettings(context)
@@ -214,38 +217,44 @@ fun SlateRoot(viewModel: SlateViewModel) {
                         onResetHabits = {
                             viewModel.resetHabits()
                             weekStart = state.today.startOfWeek()
-                            screen = Screen.Home
+                            navController.navigate(SlateRoutes.Home) {
+                                popUpTo(SlateRoutes.Home) {
+                                    inclusive = true
+                                }
+                            }
                         },
                     )
-
-                    Screen.FocusApps -> FocusAppsScreen(
+                }
+                composable(SlateRoutes.FocusApps) {
+                    FocusAppsScreen(
                         selected = state.settings.blockedPackages,
                         onToggle = viewModel::setBlockedApp,
-                        onBack = { screen = Screen.Settings },
+                        onBack = { navController.popBackStack() },
                     )
                 }
             }
 
-            val tab = screen.tab()
+            val currentBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = currentBackStackEntry?.destination?.route ?: SlateRoutes.Home
+
+            SlateBottomBar(
+                navController = navController,
+                currentRoute = currentRoute,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter),
+            )
+
             AnimatedVisibility(
-                visible = tab != null,
-                modifier = Modifier.align(Alignment.BottomCenter),
+                visible = addOpen,
+                modifier = Modifier.fillMaxSize(),
                 enter = fadeIn(tween(160)) + slideInVertically(tween(240)) { it },
                 exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it },
             ) {
-                SlateBottomBar(
-                    selected = tab ?: MainTab.Habits,
-                    onSelect = { screen = it.screen() },
-                )
-            }
-
-            if (addOpen) {
                 AddHabitSheet(
                     onDismiss = { addOpen = false },
                     onAdd = { name, target ->
                         viewModel.add(name, target)
                         weekStart = state.today.startOfWeek()
-                        screen = Screen.Home
                         addOpen = false
                     },
                 )
@@ -261,10 +270,6 @@ fun SlateRoot(viewModel: SlateViewModel) {
                 exit = fadeOut(tween(280)),
             ) {
                 Box(Modifier.fillMaxSize()) {
-                    // A sibling below the welcome absorbs stray taps so they
-                    // cannot reach the app behind it. It is not an ancestor of
-                    // the begin button, so its pointer input cannot cancel the
-                    // button's tap gesture.
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

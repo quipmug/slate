@@ -29,10 +29,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -62,7 +60,6 @@ import com.slate.weekly.util.formatTime
 import com.slate.weekly.util.monthName
 import java.time.Instant
 import java.time.ZoneId
-import kotlinx.coroutines.delay
 
 @Composable
 fun SettingsScreen(
@@ -83,15 +80,7 @@ fun SettingsScreen(
     var resetOpen by rememberSaveable { mutableStateOf(false) }
     var focusHours by rememberSaveable { mutableIntStateOf(4) }
     var confirmHours by rememberSaveable { mutableIntStateOf(0) }
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(settings.focusUntil) {
-        now = System.currentTimeMillis()
-        while (isFocusActive(settings.focusUntil, System.currentTimeMillis())) {
-            delay(15_000)
-            now = System.currentTimeMillis()
-        }
-    }
-    val focusActive = isFocusActive(settings.focusUntil, now)
+    val focusActive = isFocusActive(settings.focusUntil, System.currentTimeMillis())
     val focusCount = settings.blockedPackages.size
 
     Column(
@@ -219,7 +208,7 @@ fun SettingsScreen(
                     Spacer(Modifier.height(12.dp))
                     if (focusActive) {
                         Text(
-                            text = focusEndLabel(settings.focusUntil, now),
+                            text = focusEndLabel(settings.focusUntil, System.currentTimeMillis()),
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Spacer(Modifier.height(4.dp))

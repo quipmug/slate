@@ -2,8 +2,8 @@ package com.slate.weekly.reminder
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class RemindersTest {
 

@@ -1,8 +1,8 @@
 package com.slate.weekly.util
 
 import java.time.LocalDate
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class DatesTest {
 

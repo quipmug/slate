@@ -11,4 +11,7 @@ data class Habit(
     val target: Int,
     val createdDay: Long,
     val checks: Set<Long> = emptySet(),
-)
+) {
+    fun toEntity(): HabitEntity =
+        HabitEntity(id, name, target, createdDay)
+}

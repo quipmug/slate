@@ -5,10 +5,14 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import com.slate.weekly.data.SlateStore
 import com.slate.weekly.reminder.Reminders
+import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
+@HiltAndroidApp
 class SlateApp : Application() {
 
-    val store: SlateStore by lazy { SlateStore(this) }
+    @Inject
+    lateinit var store: SlateStore
 
     override fun onCreate() {
         super.onCreate()

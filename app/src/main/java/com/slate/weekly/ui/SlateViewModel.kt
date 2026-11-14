@@ -1,21 +1,17 @@
 package com.slate.weekly.ui
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.slate.weekly.data.Habit
 import com.slate.weekly.data.SlateSettings
 import com.slate.weekly.data.SlateStore
 import com.slate.weekly.data.ThemeMode
 import com.slate.weekly.reminder.ReminderNotifier
 import com.slate.weekly.reminder.Reminders
-import java.time.Duration
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
-import java.time.ZonedDateTime
-import kotlinx.coroutines.delay
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class SlateUiState(
@@ -34,10 +29,11 @@ data class SlateUiState(
     val welcomeSeen: Boolean = false,
 )
 
-class SlateViewModel(
-    application: Application,
+@HiltViewModel
+class SlateViewModel @Inject constructor(
+    private val application: Application,
     private val store: SlateStore,
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
     private val appContext = application.applicationContext
     private val today = MutableStateFlow(LocalDate.now())
@@ -57,12 +53,6 @@ class SlateViewModel(
     )
 
     init {
-        viewModelScope.launch {
-            while (isActive) {
-                delay(millisUntilNextDay())
-                refreshToday()
-            }
-        }
         viewModelScope.launch {
             store.settings
                 .map { Triple(it.reminderOn, it.reminderHour, it.reminderMinute) }
@@ -132,19 +122,4 @@ class SlateViewModel(
     fun previewReminder() {
         ReminderNotifier.preview(appContext)
     }
-
-    companion object {
-        fun factory(store: SlateStore): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application =
-                    this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
-                SlateViewModel(application, store)
-            }
-        }
-    }
-}
-
-private fun millisUntilNextDay(now: ZonedDateTime = ZonedDateTime.now()): Long {
-    val next = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
-    return Duration.between(now, next).toMillis().coerceAtLeast(1_000L)
 }
