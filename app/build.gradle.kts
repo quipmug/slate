@@ -99,7 +99,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation(libs.hilt.work)
 
-    implementation("com.google.dagger:hilt-android:2.50")
+    implementation("com.google.dagger:hilt-android:2.52")
     implementation(libs.hilt.navigation.compose)
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
