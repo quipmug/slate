@@ -16,8 +16,8 @@ android {
         applicationId = "com.slate.weekly"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.5.1"
+        versionCode = 8
+        versionName = "0.6.0"
         vectorDrawables { useSupportLibrary = true }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,15 +46,15 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "2024.12.01"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 tasks.withType<Test>().configureEach {
@@ -86,36 +86,33 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-    implementation("androidx.work:work-runtime-ktx:2.10.0")
+    implementation(libs.core.ktx)
+    implementation(libs.activity.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
+    implementation(libs.datastore.preferences)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
 
-    implementation("com.google.dagger:hilt-android:2.50")
+    implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation(libs.navigation.compose)
 
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
     ksp(libs.hilt.android.compiler)
+    ksp(libs.hilt.compiler)
 
     // Testing
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
-    testImplementation("io.mockk:mockk:1.13.12")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.0")
-    androidTestImplementation(libs.hilt.testing)
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling")
-
-    testAnnotationProcessor(libs.hilt.android.compiler)
 }

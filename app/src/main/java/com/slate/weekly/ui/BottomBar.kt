@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.NavController
+import androidx.navigation.NavController
 import com.slate.weekly.R
 import com.slate.weekly.ui.components.DockGlyph
 import com.slate.weekly.ui.components.DockGlyph.Habits

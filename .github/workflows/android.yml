@@ -3,7 +3,11 @@ name: build
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   apk:
@@ -27,3 +31,37 @@ jobs:
         with:
           name: slate-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: slate-debug
+          path: release
+
+      - name: rename and checksum
+        working-directory: release
+        run: |
+          mv app-debug.apk slate-debug.apk
+          sha256sum slate-debug.apk > slate-debug.apk.sha256
+          cat slate-debug.apk.sha256
+
+      - name: resolve release metadata
+        run: |
+          echo "RELEASE_NAME=slate ${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          echo "RELEASE_BODY=docs/releases/${GITHUB_REF_NAME}.md" >> "$GITHUB_ENV"
+
+      - name: publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ env.RELEASE_NAME }}
+          body_path: ${{ env.RELEASE_BODY }}
+          fail_on_unmatched_files: true
+          files: |
+            release/slate-debug.apk
+            release/slate-debug.apk.sha256

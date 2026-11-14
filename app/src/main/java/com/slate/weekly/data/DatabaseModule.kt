@@ -6,7 +6,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import dagger.hilt.installIn
+import dagger.hilt.InstallIn
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
@@ -22,7 +22,7 @@ object DatabaseModule {
             SlateDatabase::class.java,
             "slate_database"
         )
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 

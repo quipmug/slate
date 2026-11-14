@@ -3,16 +3,26 @@ package com.slate.weekly
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import com.slate.weekly.data.SlateStore
 import com.slate.weekly.reminder.Reminders
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 @HiltAndroidApp
-class SlateApp : Application() {
+class SlateApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var store: SlateStore
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     override fun onCreate() {
         super.onCreate()

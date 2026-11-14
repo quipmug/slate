@@ -3,13 +3,14 @@
 slate is one android module, one activity and one view model. the code is split
 by responsibility, not by screen: pure rules live in `data` and `domain`, android
 integration lives at the edges, and every composable is stateless enough to
-preview.
+preview. hilt builds the object graph, navigation compose owns the routes, room
+stores habits and datastore keeps settings.
 
 ```
 app/src/main/java/com/slate/weekly
-├── MainActivity.kt              edge-to-edge host, notification permission
-├── SlateApp.kt                  application object, owns the store
-├── data/                        persistence and rules around it
+├── MainActivity.kt              edge-to-edge host, @AndroidEntryPoint
+├── SlateApp.kt                  @HiltAndroidApp, workmanager configuration
+├── data/                        room, datastore, migration and rules around them
 ├── domain/                      pure functions, no android imports
 ├── focus/                       accessibility service and its status helper
 ├── reminder/                    workmanager reminder and notifications
@@ -21,16 +22,22 @@ app/src/main/java/com/slate/weekly
 
 | file | responsibility |
 |:--|:--|
-| `Habit.kt` | the serializable habit record: id, name, weekly target, creation day, checked days. |
+| `Habit.kt` | the immutable habit record used by the ui: id, name, weekly target, creation day, checked days. |
+| `HabitEntity.kt` | the room row for a habit. |
+| `HabitCheck.kt` | the room row for one checked day, keyed by habit id and epoch day, with a cascade delete. |
+| `HabitDao.kt` | room queries and transactions: habits with checks, upsert, toggle, rename, target, delete and reset. |
+| `SlateDatabase.kt` | the room database, version 1, with exported schemas under `app/schemas`. |
+| `DatabaseModule.kt` | hilt providers for the database and dao. |
 | `HabitRules.kt` | pure validation and editing rules: clean names and targets, toggle semantics, normalisation and de-duplication. |
 | `Settings.kt` | `SlateSettings`, `SlateData`, `ThemeMode` and the persisted preference keys’ shape. |
-| `SlateStore.kt` | the only writer. wraps a preferences datastore, decodes json off the main thread, exposes `data` and `settings` flows, and refuses unsafe focus changes. |
+| `SlateStore.kt` | the only writer. migrates legacy datastore habits into room once, combines room habits with the settings flow, and refuses unsafe focus changes. |
 | `InstalledApps.kt` | loads launchable apps, hides protected packages, and resolves the live protected set (launcher, settings, dialer, system ui, installer, permission controller, slate). |
 
 `SlateStore` enforces three invariants: a habit name is never blank, focus cannot
 start without at least one safe blocked package, and blocked packages cannot be
 edited while a timer is active. the accessibility service repeats the protected
-check at runtime so the persisted list is never the last line of defence.
+check at runtime and keeps collecting the settings flow, so both focus start and
+edits reach the service without a restart.
 
 ## domain
 
@@ -63,9 +70,9 @@ which is the minimum needed to close a blocked app.
 
 | file | responsibility |
 |:--|:--|
-| `App.kt` | root composition: theme, lifecycle refresh, screen transitions, welcome overlay, back handling. |
-| `SlateViewModel.kt` | owns `SlateData`, derives the ui state, exposes intent-style actions, tracks today across midnight. |
-| `Navigation.kt` | the tiny `Screen` sealed interface and `ScreenSaver`; no navigation library. |
+| `App.kt` | root composition: theme, navigation host, lifecycle refresh, welcome overlay, add sheet and back handling. |
+| `SlateViewModel.kt` | an `@HiltViewModel` that combines `SlateData` and today into the ui state, exposes intent-style actions and refreshes the day on resume. |
+| `Navigation.kt` | navigation compose routes (`home`, `detail/{habitId}`, `year`, `settings`, `focus_apps`) and the `LocalDate` saver. |
 | `WelcomeScreen.kt` | first-run trail animation and the `begin` action. the screen is shown once, keyed by `welcome_seen`. |
 | `HomeScreen.kt` | the week: habit rows, day squares, week navigation, add button. |
 | `HabitScreen.kt` | habit detail: streak, target, past weeks, rename and delete. |
@@ -80,8 +87,8 @@ which is the minimum needed to close a blocked app.
 
 state flows one way: the store emits `SlateData`, the view model derives
 `SlateUiState`, screens render it, and user actions call back into the view model.
-only `App.kt` remembers navigation and the selected week; both survive
-configuration changes through `rememberSaveable`.
+navigation is a `NavHost`; only `App.kt` remembers the selected week and the add
+sheet state, and both survive configuration changes through `rememberSaveable`.
 
 ## util
 
@@ -91,8 +98,14 @@ configuration changes through `rememberSaveable`.
 
 ## build and delivery
 
+- `gradle/libs.versions.toml` is the single source for versions. the pinned
+  androidx stack stays on agp 8.7.3 / compile sdk 35, so hilt navigation stays on
+  `1.2.0` and room on `2.7.x` until the toolchain moves.
 - `app/build.gradle.kts` pins compile/target sdk 35, min sdk 26, jdk 17 and the
-  version that reaches the apk.
+  version that reaches the apk. ksp generates hilt and room code, and room
+  schemas are exported to `app/schemas`.
 - `.github/workflows/android.yml` runs `assembleDebug testDebugUnitTest lintDebug`
   on every push to `main` and uploads the debug apk as a workflow artifact.
-- releases carry the same apk as a release asset. build output stays out of git.
+- pushing a `v*` tag runs the same checks and publishes a github release with
+  `slate-debug.apk`, its sha256 file and `docs/releases/<tag>.md` as the body.
+  build output stays out of git.

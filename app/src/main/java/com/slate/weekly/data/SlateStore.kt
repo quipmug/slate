@@ -23,9 +23,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 
 @Singleton
 class SlateStore @Inject constructor(
@@ -38,7 +40,7 @@ class SlateStore @Inject constructor(
         encodeDefaults = true
     }
 
-    private const val CURRENT_SCHEMA_VERSION = 1
+    private val currentSchemaVersion = 1
 
     private val habitsKey = stringPreferencesKey("habits")
     private val themeKey = stringPreferencesKey("theme")
@@ -75,19 +77,21 @@ class SlateStore @Inject constructor(
     val data: Flow<SlateData> = flow {
         migrateFromDataStoreIfNeeded()
         combine(
-            habitDao.getAllHabitsWithChecks(),
+            habitDao.getAllHabits(),
+            habitDao.getAllChecks(),
             settings,
             welcomeSeen,
             schemaVersion,
-        ) { habitWithChecksList, settings, seen, version ->
-            val validHabits = if (version != CURRENT_SCHEMA_VERSION) emptyList() else habitWithChecksList
-            val habits = validHabits.map { hwc ->
+        ) { habitEntities, checkEntities, settings, seen, version ->
+            val validHabits = if (version != currentSchemaVersion) emptyList() else habitEntities
+            val checksByHabit = checkEntities.groupBy { it.habitId }
+            val habits = validHabits.map { entity ->
                 Habit(
-                    id = hwc.habit.id,
-                    name = hwc.habit.name,
-                    target = hwc.habit.target,
-                    createdDay = hwc.habit.createdDay,
-                    checks = hwc.checks.map { it.day }.toSet(),
+                    id = entity.id,
+                    name = entity.name,
+                    target = entity.target,
+                    createdDay = entity.createdDay,
+                    checks = checksByHabit[entity.id].orEmpty().map { it.day }.toSet(),
                 )
             }
             SlateData(habits = habits, settings = settings, welcomeSeen = seen)
@@ -95,19 +99,16 @@ class SlateStore @Inject constructor(
     }.flowOn(Dispatchers.Default)
 
     private suspend fun migrateFromDataStoreIfNeeded() {
-        val currentVersion = appContext.slateData.data.first()
-            .map { prefs -> prefs[schemaVersionKey] ?: 0 }
-            .first()
+        val prefs = appContext.slateData.data.first()
+        val currentVersion = prefs[schemaVersionKey] ?: 0
 
-        if (currentVersion >= CURRENT_SCHEMA_VERSION) return
+        if (currentVersion >= currentSchemaVersion) return
 
-        val rawHabits = appContext.slateData.data.first()
-            .map { prefs -> prefs[habitsKey] }
-            .first()
+        val rawHabits = prefs[habitsKey]
 
         if (rawHabits.isNullOrBlank()) {
             appContext.slateData.edit { prefs ->
-                prefs[schemaVersionKey] = CURRENT_SCHEMA_VERSION
+                prefs[schemaVersionKey] = currentSchemaVersion
             }
             return
         }
@@ -134,7 +135,7 @@ class SlateStore @Inject constructor(
         }
 
         appContext.slateData.edit { prefs ->
-            prefs[schemaVersionKey] = CURRENT_SCHEMA_VERSION
+            prefs[schemaVersionKey] = currentSchemaVersion
         }
     }
 
@@ -233,6 +234,7 @@ class SlateStore @Inject constructor(
 }
 
 // Legacy habit class for DataStore JSON migration
+@Serializable
 private data class LegacyHabit(
     val id: String,
     val name: String,

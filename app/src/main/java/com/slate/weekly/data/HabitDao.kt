@@ -2,28 +2,21 @@ package com.slate.weekly.data
 
 import androidx.room.Dao
 import androidx.room.Delete
-import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Relation
 import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-
-data class HabitWithChecks(
-    @Embedded val habit: HabitEntity,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "habit_id"
-    )
-    val checks: List<HabitCheck>,
-)
 
 @Dao
 interface HabitDao {
 
     @Query("SELECT * FROM habits ORDER BY created_day ASC, name ASC")
-    fun getAllHabitsWithChecks(): Flow<List<HabitWithChecks>>
+    fun getAllHabits(): Flow<List<HabitEntity>>
+
+    @Query("SELECT * FROM habit_checks")
+    fun getAllChecks(): Flow<List<HabitCheck>>
 
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun getHabitById(id: String): HabitEntity?
@@ -44,7 +37,7 @@ interface HabitDao {
     suspend fun deleteAllHabits()
 
     @Query("SELECT day FROM habit_checks WHERE habit_id = :id")
-    fun getChecksForHabit(id: String): Flow<Set<Long>>
+    suspend fun getCheckDays(id: String): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCheck(check: HabitCheck)
@@ -52,13 +45,10 @@ interface HabitDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChecks(vararg checks: HabitCheck)
 
-    @Delete
-    suspend fun deleteCheck(check: HabitCheck)
-
-    @Query("DELETE FROM habit_checks WHERE habit_id = :id AND day = :day")
+    @Query("DELETE FROM habit_checks WHERE habit_id = :habitId AND day = :day")
     suspend fun deleteCheckForHabit(habitId: String, day: Long)
 
-    @Query("DELETE FROM habit_checks WHERE habit_id = :id")
+    @Query("DELETE FROM habit_checks WHERE habit_id = :habitId")
     suspend fun deleteAllChecksForHabit(habitId: String)
 
     @Transaction
@@ -72,8 +62,7 @@ interface HabitDao {
 
     @Transaction
     suspend fun toggleCheck(habitId: String, day: Long) {
-        val existing = getChecksForHabit(habitId).first()
-        if (day in existing) {
+        if (day in getCheckDays(habitId)) {
             deleteCheckForHabit(habitId, day)
         } else {
             insertCheck(HabitCheck(habitId, day))

@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class FocusAccessibilityService : AccessibilityService() {
@@ -29,9 +29,10 @@ class FocusAccessibilityService : AccessibilityService() {
         settingsJob?.cancel()
         val store = (application as SlateApp).store
         settingsJob = serviceScope.launch {
-            val settings = store.settings.first()
-            focusUntil = settings.focusUntil
-            blockedPackages = settings.blockedPackages
+            store.settings.collect { settings ->
+                focusUntil = settings.focusUntil
+                blockedPackages = settings.blockedPackages
+            }
         }
     }
 

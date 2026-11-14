@@ -5,12 +5,14 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.slate.weekly.data.SlateStore
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 
 @HiltWorker
-class ReminderWorker @Inject constructor(
-    appContext: Context,
-    params: WorkerParameters,
+class ReminderWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted params: WorkerParameters,
     private val store: SlateStore,
 ) : CoroutineWorker(appContext, params) {
 

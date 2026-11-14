@@ -4,6 +4,41 @@ all notable changes to slate are recorded here. the format follows
 [keep a changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-11-14
+
+### changed
+
+- architecture refresh: hilt dependency injection, navigation compose and room
+  for habits. the app behaves the same, but state and navigation have one owner
+  again.
+- habits are migrated once from the old datastore json into room, so an update
+  keeps existing history.
+- the focus accessibility service now collects settings live, so starting a timer
+  or editing blocked apps takes effect without restarting the service.
+- reminder work is created through hilt's worker factory instead of relying on
+  the default workmanager initializer.
+- removed the settings polling loop and the view model's midnight loop; today is
+  refreshed on resume and the ui observes state directly.
+- unit tests moved to junit 5 and the build aligns all hilt, room and lifecycle
+  versions with the version catalog. ci now gets past aar metadata again.
+- release builds enable r8 minification and keep hilt, room, navigation, compose
+  and workmanager entry points.
+
+### fixed
+
+- aligned `androidx.hilt:hilt-navigation-compose` and `hilt-work` with agp 8.7.3
+  and compile sdk 35. the previous `1.4.0` artifacts required agp 9.1 and api 37,
+  which failed every build.
+- restored the missing `first`, `collect` and `@Inject` imports, the correct
+  `NavController` package and the activity view-model delegate.
+- removed the broken hilt test dependency and the unused test annotation
+  processor.
+- `allowBackup=false` and the backup rules no longer contradict each other.
+
+### release
+
+- version `0.6.0`, version code `8`.
+
 ## [0.5.1] — 2026-11-13
 
 ### fixed
@@ -87,6 +122,7 @@ all notable changes to slate are recorded here. the format follows
 - the first minimal weekly habit tracker: one row per habit, one square per day.
 - version `0.1.0`, version code `1`.
 
+[0.6.0]: https://github.com/quipmug/slate/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/quipmug/slate/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/quipmug/slate/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/quipmug/slate/compare/v0.3.0...v0.4.0

@@ -34,8 +34,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.currentBackStackEntryAsState
 import com.slate.weekly.BuildConfig
 import com.slate.weekly.R
 import com.slate.weekly.data.Habit
@@ -54,6 +54,8 @@ fun SlateRoot(viewModel: SlateViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route ?: SlateRoutes.Home
     var addOpen by rememberSaveable { mutableStateOf(false) }
     var welcomeDismissed by rememberSaveable { mutableStateOf(false) }
     var weekStart by rememberSaveable(stateSaver = LocalDateSaver) {
@@ -106,7 +108,7 @@ fun SlateRoot(viewModel: SlateViewModel) {
         weekStart = coerceWeek(weekStart, firstWeek, thisWeek)
     }
 
-    BackHandler(enabled = navController.currentBackStackEntryCount > 1 || addOpen) {
+    BackHandler(enabled = currentRoute != SlateRoutes.Home || addOpen) {
         if (addOpen) {
             addOpen = false
         } else {
@@ -233,9 +235,6 @@ fun SlateRoot(viewModel: SlateViewModel) {
                     )
                 }
             }
-
-            val currentBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = currentBackStackEntry?.destination?.route ?: SlateRoutes.Home
 
             SlateBottomBar(
                 navController = navController,

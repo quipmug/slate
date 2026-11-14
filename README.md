@@ -35,7 +35,7 @@ honest record of what you kept.
 - **the reminder** — one optional daily nudge, scheduled at a time you choose
 - **strict focus** — selected apps close for 1h, 4h, 8h or 24h, then come back on their own
 - **the look** — light, dark and auto themes, all monochrome, all lowercase
-- **the data** — local datastore only. no account, no cloud, no tracking, no internet permission.
+- **the data** — local room database only. no account, no cloud, no tracking, no internet permission.
 
 ## what it isn't
 
@@ -80,9 +80,11 @@ slate does not integrate with digital wellbeing or samsung health.
 ## privacy
 
 slate has no network layer. the manifest requests no `INTERNET` permission and
-`allowBackup` is off. habits, settings and the focus list live in a local
-datastore file; uninstalling the app removes them. notifications are optional and
-only ever say that a habit is still open.
+`allowBackup` is off. habits live in a local room database, while settings and
+the focus list live in a local datastore file. a one-time migration moves habits
+from the older datastore format into room, so updates keep your history.
+uninstalling the app removes everything. notifications are optional and only
+ever say that a habit is still open.
 
 ## download
 
@@ -103,37 +105,40 @@ requirements: jdk 17, android sdk with platform 35 and build-tools 35.0.0.
 ```
 
 the apk lands in `app/build/outputs/apk/debug/app-debug.apk`. the github action
-runs the same three commands on every push to `main`.
+runs the same three commands on every push to `main`, and a `v*` tag also
+publishes a release with the apk and its sha256 file.
 
 ## under the hood
 
-a single module, one activity, one view model. no dependency injection
-framework, no navigation library, no network stack.
+a single module, one activity, one view model. hilt wires the dependencies,
+navigation compose owns the five routes, room stores habits, and datastore keeps
+settings. there is no network stack.
 
-- `data` — habit model, pure `HabitRules`, separate habit and settings flows over
-  datastore; json decoding runs off the main thread
+- `data` — room entities, dao and database, a one-time datastore-to-room
+  migration, pure `HabitRules`, and the settings flow over datastore
 - `domain` — pure week progress, streak, year count, heatmap grid and focus timer
   functions
 - `focus` — accessibility service and the small helper that reports whether it is
   enabled
 - `reminder` — one-time work that reschedules itself after every run; the
   notification builder is shared with the settings test action
-- `ui` — stateless screens, one `SlateViewModel`, navigation and the selected
-  week survive rotation; the 53-week trail is cached as a bitmap so scrolling
-  stays cheap
+- `ui` — stateless screens, one `@HiltViewModel`, navigation compose routes and
+  the selected week survive rotation; the 53-week trail is cached as a bitmap so
+  scrolling stays cheap
 
 see [docs/architecture.md](docs/architecture.md) for the file-by-file map.
 
 ## stack
 
-kotlin · jetpack compose · material 3 · datastore · kotlinx.serialization ·
-workmanager. no room, no hilt, no navigation library, no analytics.
+kotlin · jetpack compose · material 3 · hilt · room · navigation compose ·
+datastore · kotlinx.serialization · workmanager. no analytics, no network.
 
 ## tests
 
 28 plain unit tests cover dates, habit rules, week progress, streaks, reminder
-timing and focus timers. lint has eight intentional warnings (dependency updates,
-`PluralsCandidate`, `ObsoleteSdkInt` and the lowercase `cancel` label).
+timing and focus timers. lint passes with warnings only: mostly newer dependency
+versions available to a newer toolchain, plus `PluralsCandidate`, `ObsoleteSdkInt`
+and the lowercase `cancel` label.
 
 ## license
 
