@@ -97,10 +97,10 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
-    implementation("androidx.hilt:hilt-work:2.50")
+    implementation("androidx.hilt:hilt-work:1.4.0")
 
     implementation("com.google.dagger:hilt-android:2.50")
-    implementation("com.google.dagger:hilt-navigation-compose:1.2.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.4.0")
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
     implementation("androidx.room:room-runtime:2.6.1")
