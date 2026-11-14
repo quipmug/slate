@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.slate.weekly.R
 import com.slate.weekly.ui.components.DockGlyph
 import com.slate.weekly.ui.components.DockGlyph.Habits
@@ -66,9 +67,16 @@ internal fun SlateBottomBar(
             DockTab(
                 tab = tab,
                 selected = currentRoute == tab.route,
-                onClick = { navController.navigate(tab.route) },
+                onClick = {
+                    navController.navigate(tab.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 modifier = Modifier.weight(1f),
-                navController = navController,
             )
         }
     }
@@ -80,7 +88,6 @@ private fun DockTab(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    navController: NavController,
 ) {
     val pill by animateColorAsState(
         targetValue = if (selected) {

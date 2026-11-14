@@ -4,6 +4,30 @@ all notable changes to slate are recorded here. the format follows
 [keep a changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] — 2026-11-15
+
+### fixed
+
+- release apks are now signed with the committed `keystore/slate-debug.jks`, so
+  every future release can install over the previous one. `0.6.0` and older used
+  a throwaway ci debug key, so this release is a one-time reinstall.
+- the floating dock is hidden on habit detail and the blocked-app picker again,
+  so it no longer covers the bottom of those screens.
+- bottom-tab taps pop to the start destination and restore state, so switching
+  tabs no longer stacks duplicate screens or breaks the back button.
+- the ui rolls over at local midnight while the app stays open, instead of
+  waiting for the next resume to update “today”.
+- focus settings refresh while a timer is active, so the screen leaves the
+  running state when the timer expires.
+- opening the app no longer replaces a reminder that is already waiting to fire.
+
+### changed
+
+- build plugins now come from the version catalog, including hilt `2.52` and ksp
+  `2.0.21-1.0.28`, so the plugin and compiler versions cannot drift apart again.
+- ci checks the apk signer fingerprint after every build.
+- version `0.6.1`, version code `9`.
+
 ## [0.6.0] — 2026-11-14
 
 ### changed
@@ -122,6 +146,7 @@ all notable changes to slate are recorded here. the format follows
 - the first minimal weekly habit tracker: one row per habit, one square per day.
 - version `0.1.0`, version code `1`.
 
+[0.6.1]: https://github.com/quipmug/slate/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/quipmug/slate/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/quipmug/slate/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/quipmug/slate/compare/v0.4.0...v0.5.0

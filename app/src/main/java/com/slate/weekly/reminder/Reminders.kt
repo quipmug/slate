@@ -17,6 +17,10 @@ object Reminders {
         enqueue(context, ExistingWorkPolicy.REPLACE, hour, minute)
     }
 
+    internal fun ensureScheduled(context: Context, hour: Int, minute: Int) {
+        enqueue(context, ExistingWorkPolicy.KEEP, hour, minute)
+    }
+
     internal fun scheduleNext(context: Context, hour: Int, minute: Int) {
         enqueue(context, ExistingWorkPolicy.APPEND_OR_REPLACE, hour, minute)
     }

@@ -29,8 +29,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -60,6 +62,7 @@ import com.slate.weekly.util.formatTime
 import com.slate.weekly.util.monthName
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.delay
 
 @Composable
 fun SettingsScreen(
@@ -80,7 +83,19 @@ fun SettingsScreen(
     var resetOpen by rememberSaveable { mutableStateOf(false) }
     var focusHours by rememberSaveable { mutableIntStateOf(4) }
     var confirmHours by rememberSaveable { mutableIntStateOf(0) }
-    val focusActive = isFocusActive(settings.focusUntil, System.currentTimeMillis())
+    var nowMillis by remember(settings.focusUntil) {
+        mutableLongStateOf(System.currentTimeMillis())
+    }
+    LaunchedEffect(settings.focusUntil) {
+        while (true) {
+            val current = System.currentTimeMillis()
+            nowMillis = current
+            val remaining = settings.focusUntil - current
+            if (remaining <= 0L) break
+            delay(minOf(remaining, 60_000L))
+        }
+    }
+    val focusActive = isFocusActive(settings.focusUntil, nowMillis)
     val focusCount = settings.blockedPackages.size
 
     Column(

@@ -62,7 +62,7 @@ which is the minimum needed to close a blocked app.
 
 | file | responsibility |
 |:--|:--|
-| `Reminders.kt` | schedules one unique one-time work request at the next chosen local time, then appends the following day after each run. |
+| `Reminders.kt` | schedules one unique one-time work request at the next chosen local time, keeps an already waiting request when the app opens, then appends the following day after each run. |
 | `ReminderWorker.kt` | shows the notification, then schedules the next occurrence. |
 | `ReminderNotifier.kt` | creates the channel and builds the shared notification used by both the worker and the settings test action. |
 
@@ -70,17 +70,17 @@ which is the minimum needed to close a blocked app.
 
 | file | responsibility |
 |:--|:--|
-| `App.kt` | root composition: theme, navigation host, lifecycle refresh, welcome overlay, add sheet and back handling. |
-| `SlateViewModel.kt` | an `@HiltViewModel` that combines `SlateData` and today into the ui state, exposes intent-style actions and refreshes the day on resume. |
+| `App.kt` | root composition: theme, navigation host, lifecycle refresh, welcome overlay, add sheet, back handling and the dock’s tab-only visibility. |
+| `SlateViewModel.kt` | an `@HiltViewModel` that combines `SlateData` and today into the ui state, wakes once at local midnight to roll the day over, exposes intent-style actions and refreshes the day on resume. |
 | `Navigation.kt` | navigation compose routes (`home`, `detail/{habitId}`, `year`, `settings`, `focus_apps`) and the `LocalDate` saver. |
 | `WelcomeScreen.kt` | first-run trail animation and the `begin` action. the screen is shown once, keyed by `welcome_seen`. |
 | `HomeScreen.kt` | the week: habit rows, day squares, week navigation, add button. |
 | `HabitScreen.kt` | habit detail: streak, target, past weeks, rename and delete. |
 | `YearScreen.kt` | year heatmap, all habits or a single habit, with a month grid. |
-| `SettingsScreen.kt` | appearance, reminder, focus entry, reset, version. |
+| `SettingsScreen.kt` | appearance, reminder, focus entry, reset, version; ticks while a focus timer is active so it can leave the running state when the timer expires. |
 | `FocusAppsScreen.kt` | app picker and duration choices; refuses edits while focus is active. |
 | `AddHabitSheet.kt` | the bottom sheet for a new habit and its weekly target. |
-| `BottomBar.kt` | the floating three-item dock. |
+| `BottomBar.kt` | the floating three-item dock; switches pop to the start destination, keep one copy of each tab and restore saved state. |
 | `NotificationSupport.kt` | notification permission and channel helpers. |
 | `components/` | shared primitives: trail grid, week strip, chevron, icons, controls and buttons. |
 | `theme/` | monochrome palette, inter typography and the material 3 theme. |
@@ -98,14 +98,20 @@ sheet state, and both survive configuration changes through `rememberSaveable`.
 
 ## build and delivery
 
-- `gradle/libs.versions.toml` is the single source for versions. the pinned
-  androidx stack stays on agp 8.7.3 / compile sdk 35, so hilt navigation stays on
-  `1.2.0` and room on `2.7.x` until the toolchain moves.
+- `gradle/libs.versions.toml` is the single source for versions, including the
+  gradle plugins. the pinned androidx stack stays on agp 8.7.3 / compile sdk 35,
+  so hilt navigation stays on `1.2.0` and room on `2.7.x` until the toolchain
+  moves. hilt is `2.52` for both the plugin and the compiler; ksp is
+  `2.0.21-1.0.28`.
 - `app/build.gradle.kts` pins compile/target sdk 35, min sdk 26, jdk 17 and the
   version that reaches the apk. ksp generates hilt and room code, and room
   schemas are exported to `app/schemas`.
+- debug and release signing both use `keystore/slate-debug.jks`, a public debug
+  key committed on purpose so sideloaded releases update each other. the
+  workflow verifies the resulting certificate fingerprint.
 - `.github/workflows/android.yml` runs `assembleDebug testDebugUnitTest lintDebug`
-  on every push to `main` and uploads the debug apk as a workflow artifact.
+  on every push to `main`, checks the signer fingerprint and uploads the debug
+  apk as a workflow artifact.
 - pushing a `v*` tag runs the same checks and publishes a github release with
   `slate-debug.apk`, its sha256 file and `docs/releases/<tag>.md` as the body.
   build output stays out of git.

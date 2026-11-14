@@ -82,9 +82,12 @@ slate does not integrate with digital wellbeing or samsung health.
 slate has no network layer. the manifest requests no `INTERNET` permission and
 `allowBackup` is off. habits live in a local room database, while settings and
 the focus list live in a local datastore file. a one-time migration moves habits
-from the older datastore format into room, so updates keep your history.
-uninstalling the app removes everything. notifications are optional and only
-ever say that a habit is still open.
+from the older datastore format into room, so updates keep your history. from
+`0.6.1` onward every apk is signed with the committed public debug key, so
+releases install in place. `0.6.0` and older used throwaway ci keys: that one
+transition needs an uninstall, and the `0.6.1` release notes include adb steps
+that preserve the old data. uninstalling the app removes everything.
+notifications are optional and only ever say that a habit is still open.
 
 ## download
 
@@ -94,19 +97,34 @@ get the latest apk from [releases](https://github.com/quipmug/slate/releases/lat
 2. allow installs from the app you used to transfer the file, if asked
 3. open slate. the first run is a small grid, then the week.
 
+coming from `0.6.0` or older, uninstall once first:
+`adb uninstall com.slate.weekly`. those apks were signed with a throwaway ci
+key. if you want to keep their data, use the short adb backup and restore steps
+in the [0.6.1 release notes](docs/releases/v0.6.1.md). from `0.6.1` onward
+`adb install -r` updates the app in place.
+
 ## build
 
 requirements: jdk 17, android sdk with platform 35 and build-tools 35.0.0.
 
 ```bash
 ./gradlew assembleDebug
+./gradlew assembleRelease
 ./gradlew testDebugUnitTest
 ./gradlew lintDebug
 ```
 
 the apk lands in `app/build/outputs/apk/debug/app-debug.apk`. the github action
-runs the same three commands on every push to `main`, and a `v*` tag also
-publishes a release with the apk and its sha256 file.
+runs the debug build, tests and lint on every push to `main`, checks the signer
+fingerprint, and a `v*` tag also publishes a release with the apk and its sha256
+file.
+
+### signing
+
+`keystore/slate-debug.jks` is a public debug key committed on purpose. debug and
+release builds both use it, so every sideloaded release can update the previous
+one. it is not a secret and not a play store key; see
+[keystore/README.md](keystore/README.md) for the alias and passwords.
 
 ## under the hood
 

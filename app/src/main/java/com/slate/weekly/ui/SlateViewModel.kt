@@ -10,8 +10,11 @@ import com.slate.weekly.data.ThemeMode
 import com.slate.weekly.reminder.ReminderNotifier
 import com.slate.weekly.reminder.Reminders
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Duration
 import java.time.LocalDate
+import java.time.ZonedDateTime
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class SlateUiState(
@@ -53,20 +57,38 @@ class SlateViewModel @Inject constructor(
     )
 
     init {
+        // Keep the day current even when the app stays open across midnight.
+        // A single coroutine sleeping until the next local midnight is cheaper
+        // than polling, and resume still refreshes it after a long sleep.
         viewModelScope.launch {
+            while (isActive) {
+                val now = ZonedDateTime.now()
+                val nextDay = now.toLocalDate()
+                    .plusDays(1)
+                    .atStartOfDay(now.zone)
+                delay(Duration.between(now, nextDay).toMillis().coerceAtLeast(1_000L))
+                today.value = LocalDate.now()
+            }
+        }
+
+        viewModelScope.launch {
+            var firstEmission = true
             store.settings
                 .map { Triple(it.reminderOn, it.reminderHour, it.reminderMinute) }
                 .distinctUntilChanged()
                 .collect { (enabled, hour, minute) ->
                     if (enabled) {
-                        Reminders.schedule(
-                            context = appContext,
-                            hour = hour,
-                            minute = minute,
-                        )
+                        // Opening the app should not cancel a reminder that is
+                        // already waiting to fire. Only later edits replace it.
+                        if (firstEmission) {
+                            Reminders.ensureScheduled(appContext, hour, minute)
+                        } else {
+                            Reminders.schedule(appContext, hour, minute)
+                        }
                     } else {
                         Reminders.cancel(appContext)
                     }
+                    firstEmission = false
                 }
         }
     }

@@ -29,6 +29,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 
+private val Context.slateData by preferencesDataStore(name = "slate")
+
 @Singleton
 class SlateStore @Inject constructor(
     @ApplicationContext private val appContext: Context,
@@ -51,8 +53,6 @@ class SlateStore @Inject constructor(
     private val focusUntilKey = longPreferencesKey("focus_until")
     private val blockedPackagesKey = stringSetPreferencesKey("blocked_packages")
     private val schemaVersionKey = intPreferencesKey("schema_version")
-
-    private val Context.slateData by preferencesDataStore(name = "slate")
 
     private val preferences: Flow<Preferences> = appContext.slateData.data
         .catch { error ->

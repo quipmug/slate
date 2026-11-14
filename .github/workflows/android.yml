@@ -27,6 +27,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon
 
+      - name: verify stable signing key
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          CERT="$("$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          echo "signer: $CERT"
+          test "$CERT" = "5a698a3ec45b557865ae175806d377aff30627952b1318bdf3ec59acc7e5d474"
+
       - uses: actions/upload-artifact@v7
         with:
           name: slate-debug

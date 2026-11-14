@@ -56,6 +56,9 @@ fun SlateRoot(viewModel: SlateViewModel) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route ?: SlateRoutes.Home
+    val showBottomBar = currentRoute == SlateRoutes.Home ||
+        currentRoute == SlateRoutes.Year ||
+        currentRoute == SlateRoutes.Settings
     var addOpen by rememberSaveable { mutableStateOf(false) }
     var welcomeDismissed by rememberSaveable { mutableStateOf(false) }
     var weekStart by rememberSaveable(stateSaver = LocalDateSaver) {
@@ -236,12 +239,17 @@ fun SlateRoot(viewModel: SlateViewModel) {
                 }
             }
 
-            SlateBottomBar(
-                navController = navController,
-                currentRoute = currentRoute,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter),
-            )
+            AnimatedVisibility(
+                visible = showBottomBar,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(tween(160)) + slideInVertically(tween(240)) { it },
+                exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it },
+            ) {
+                SlateBottomBar(
+                    navController = navController,
+                    currentRoute = currentRoute,
+                )
+            }
 
             AnimatedVisibility(
                 visible = addOpen,
