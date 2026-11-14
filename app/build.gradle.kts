@@ -97,25 +97,25 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
-    implementation("androidx.hilt:hilt-work:1.4.0")
+    implementation(libs.hilt.work)
 
     implementation("com.google.dagger:hilt-android:2.50")
-    implementation("androidx.hilt:hilt-navigation-compose:1.4.0")
+    implementation(libs.hilt.navigation.compose)
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    ksp("com.google.dagger:hilt-android-compiler:2.50")
+    ksp(libs.hilt.android.compiler)
 
     // Testing
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testImplementation("io.mockk:mockk:1.13.12")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.0")
-    androidTestImplementation("androidx.hilt:hilt-testing:2.50")
+    androidTestImplementation(libs.hilt.testing)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    testAnnotationProcessor("com.google.dagger:hilt-android-compiler:2.50")
+    testAnnotationProcessor(libs.hilt.android.compiler)
 }
